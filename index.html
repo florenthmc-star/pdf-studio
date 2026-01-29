@@ -73,7 +73,6 @@
 
     .hint { font-size:12px; color:#98a2bd; margin-top:8px; }
     .note { padding:10px 14px; font-size:12px; color:#98a2bd; border-top:1px solid #242833; }
-    .sep { height:1px; background:#242833; margin: 8px 0; opacity:.8; }
     a { color:#9bb5ff; }
   </style>
 </head>
@@ -100,7 +99,7 @@
 
       <div class="note">
         Outils : <b>Rogner</b> + <b>Texte</b> + export PDF.<br/>
-        Astuce : si Google Sites bloque l’intégration, mets un bouton “Ouvrir” vers l’URL publique.
+        (Fix inclus) PDF.js ne peut plus “détacher” tes données → aperçu & export OK.
       </div>
     </aside>
 
@@ -145,7 +144,7 @@
   /**
    * item:
    *  type: 'pdf' | 'img'
-   *  pdf: { srcPdfBytes, pageIndex, name, crop?, texts? }
+   *  pdf: { srcPdfU8, pageIndex, name, crop?, texts? }
    *  img: { dataUrl, name, crop?, texts? }
    *
    * crop:
@@ -169,6 +168,9 @@
 
   // Crop UI in canvas coords
   let cropUI = { x:40, y:40, w:200, h:260, dragging:false, resizing:false, dx:0, dy:0 };
+
+  // Render cancellation (prevents “blank” preview when rapidly switching pages)
+  let renderToken = 0;
 
   // ---- DOM ----
   const fileInput = document.getElementById('fileInput');
@@ -280,8 +282,10 @@
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
       if (isPdf){
-        const bytes = await file.arrayBuffer();
-        await addPdfPages(bytes, file.name);
+        const ab = await file.arrayBuffer();
+        // ✅ on stocke un “maître” Uint8Array (PDF.js ne pourra pas le détacher)
+        const srcPdfU8 = new Uint8Array(ab);
+        await addPdfPages(srcPdfU8, file.name);
       } else if (file.type.startsWith('image/')){
         const dataUrl = await fileToDataUrl(file);
         state.items.push({ type:'img', name:file.name, dataUrl, crop:null, texts:[] });
@@ -292,11 +296,12 @@
     setMode(mode);
   }
 
-  async function addPdfPages(srcPdfBytes, filename){
-    const loadingTask = pdfjsLib.getDocument({ data: srcPdfBytes });
+  async function addPdfPages(srcPdfU8, filename){
+    // ✅ IMPORTANT: PDF.js reçoit une COPIE (sinon il détache le buffer)
+    const loadingTask = pdfjsLib.getDocument({ data: srcPdfU8.slice(0) });
     const pdf = await loadingTask.promise;
     for (let i=0; i<pdf.numPages; i++){
-      state.items.push({ type:'pdf', name:filename, srcPdfBytes, pageIndex:i, crop:null, texts:[] });
+      state.items.push({ type:'pdf', name:filename, srcPdfU8, pageIndex:i, crop:null, texts:[] });
     }
   }
 
@@ -333,22 +338,17 @@
 
     if (previewMeta.kind === 'pdf'){
       const pw = previewMeta.pdfPtsW, ph = previewMeta.pdfPtsH;
-
       const left = (x / cw) * pw;
       const right = ((x+w) / cw) * pw;
-
       const top = ph - (y / ch) * ph;
       const bottom = ph - ((y+h) / ch) * ph;
-
       item.crop = { left, bottom, right, top };
     } else if (previewMeta.kind === 'img'){
       const iw = previewMeta.imgNatW, ih = previewMeta.imgNatH;
-
       const ix = (x / cw) * iw;
       const iy = (y / ch) * ih;
       const iw2 = (w / cw) * iw;
       const ih2 = (h / ch) * ih;
-
       item.crop = { x:ix, y:iy, w:iw2, h:ih2 };
     }
 
@@ -408,16 +408,19 @@
     try{
       const out = await PDFDocument.create();
       const font = await out.embedFont(StandardFonts.Helvetica);
-      const pdfCache = new Map(); // bytesRef -> PDFDocument
+
+      // cache by Uint8Array reference
+      const pdfCache = new Map(); // srcPdfU8 -> PDFDocument
 
       for (const item of state.items){
         ensureArrays(item);
 
         if (item.type === 'pdf'){
-          let srcDoc = pdfCache.get(item.srcPdfBytes);
+          let srcDoc = pdfCache.get(item.srcPdfU8);
           if (!srcDoc){
-            srcDoc = await PDFDocument.load(item.srcPdfBytes);
-            pdfCache.set(item.srcPdfBytes, srcDoc);
+            // ✅ pdf-lib accepte Uint8Array et ne “détache” pas comme PDF.js
+            srcDoc = await PDFDocument.load(item.srcPdfU8);
+            pdfCache.set(item.srcPdfU8, srcDoc);
           }
           const [page] = await out.copyPages(srcDoc, [item.pageIndex]);
           out.addPage(page);
@@ -560,7 +563,8 @@
         `;
 
         try {
-          await renderPdfPageToCanvas(item.srcPdfBytes, item.pageIndex, c, 0.25, 144);
+          // ✅ pass Uint8Array master; PDF.js will receive a copy inside renderPdfPageToCanvas
+          await renderPdfPageToCanvas(item.srcPdfU8, item.pageIndex, c, 0.25, 144);
         } catch(e) {
           const ctx = c.getContext('2d');
           ctx.fillStyle = '#111'; ctx.fillRect(0,0,c.width,c.height);
@@ -575,6 +579,8 @@
   }
 
   async function renderPreview(){
+    const myToken = ++renderToken;
+
     const item = getActiveItem();
     const ctx = previewCanvas.getContext('2d');
 
@@ -588,8 +594,12 @@
     }
     ensureArrays(item);
 
+    // show temporary text so user sees something even on slower PDFs
+    hintEl.textContent = 'Chargement aperçu…';
+
     if (item.type === 'img'){
       const img = await dataUrlToImage(item.dataUrl);
+      if (myToken !== renderToken) return;
 
       const maxW = 900;
       const scale = Math.min(1, maxW / img.naturalWidth);
@@ -607,11 +617,17 @@
 
       drawTextsPreview(ctx, cw, ch, item.texts);
 
-      // set crop UI from saved crop or default
       cropUI = item.crop ? imgCropToCanvasCrop(item.crop) : defaultCrop(cw,ch);
 
+      hintEl.textContent = (mode === 'text')
+        ? 'Mode Texte : clique pour placer un texte.'
+        : (mode === 'crop')
+          ? 'Mode Rogner : ajuste puis Appliquer.'
+          : 'Sélectionne une page et utilise Rogner ou Texte.';
+
     } else {
-      const meta = await renderPdfPageToCanvas(item.srcPdfBytes, item.pageIndex, previewCanvas, 1.4, 900);
+      const meta = await renderPdfPageToCanvas(item.srcPdfU8, item.pageIndex, previewCanvas, 1.4, 900);
+      if (myToken !== renderToken) return;
 
       previewMeta.kind = 'pdf';
       previewMeta.canvasW = meta.canvasW; previewMeta.canvasH = meta.canvasH;
@@ -620,6 +636,12 @@
       drawTextsPreview(ctx, previewMeta.canvasW, previewMeta.canvasH, item.texts);
 
       cropUI = item.crop ? pdfCropToCanvasCrop(item.crop) : defaultCrop(previewMeta.canvasW, previewMeta.canvasH);
+
+      hintEl.textContent = (mode === 'text')
+        ? 'Mode Texte : clique pour placer un texte.'
+        : (mode === 'crop')
+          ? 'Mode Rogner : ajuste puis Appliquer.'
+          : 'Sélectionne une page et utilise Rogner ou Texte.';
     }
 
     if (mode === 'crop') showCropOverlay(); else hideCropOverlay();
@@ -629,8 +651,9 @@
     return { x:40, y:40, w: Math.max(120, cw-80), h: Math.max(160, ch-80), dragging:false, resizing:false, dx:0, dy:0 };
   }
 
-  async function renderPdfPageToCanvas(pdfBytes, pageIndex, canvas, baseScale, maxW){
-    const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+  async function renderPdfPageToCanvas(pdfU8, pageIndex, canvas, baseScale, maxW){
+    // ✅ CRUCIAL: pass a copy to PDF.js (prevents detached ArrayBuffer)
+    const loadingTask = pdfjsLib.getDocument({ data: pdfU8.slice(0) });
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(pageIndex + 1);
 
@@ -782,7 +805,6 @@
     ctx.restore();
   }
 
-  // ---- SMALL HELPERS ----
   function escapeHtml(s){
     return String(s||'').replace(/[&<>"']/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c]));
   }
