@@ -56,7 +56,7 @@
       display:flex; gap:10px; flex-wrap:wrap; align-items:center;
       border:1px solid #242833; background:#0b0d12; border-radius:14px;
       padding:10px 12px;
-      max-width: 860px;
+      max-width: 980px;
     }
     .props .group { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .props label { font-size:12px; color:#b9c0d4; display:flex; align-items:center; gap:6px; }
@@ -88,11 +88,11 @@
       width:100%; height:100%;
       pointer-events:auto;
       overflow:visible;
+      touch-action:none;
     }
 
-    /* selection highlight */
     .selBox { fill: none; stroke: #2b5cff; stroke-width: 2; stroke-dasharray: 6 4; }
-    .handle { fill:#2b5cff; stroke: rgba(0,0,0,0.4); stroke-width:2; cursor: nwse-resize; }
+    .handleDot { fill:#2b5cff; stroke: rgba(0,0,0,0.4); stroke-width:2; cursor: pointer; }
 
     /* Crop overlay (separate) */
     #cropBox {
@@ -102,6 +102,7 @@
       border-radius:8px;
       display:none;
       cursor:move;
+      touch-action:none;
     }
     #cropBox .br {
       position:absolute; width:12px; height:12px; background:#2b5cff;
@@ -135,10 +136,11 @@
       <div class="thumbs" id="thumbs"></div>
 
       <div class="note">
-        ✅ Sélection / déplacer / double-clic pour éditer texte<br/>
-        ✅ Couleurs texte + formes (contour/remplissage)<br/>
-        ✅ Ligne / flèche / smiley<br/>
-        ✅ Export PDF (tout rejoué en pdf-lib)
+        • Sélection : cliquer + glisser pour déplacer<br/>
+        • Lignes/flèches : poignées aux extrémités<br/>
+        • Texte : double-clic pour modifier<br/>
+        • Flèche : même couleur partout ✅<br/>
+        • Export : fix `drawPolygon` ✅
       </div>
     </aside>
 
@@ -150,7 +152,6 @@
             <span class="pill" id="pageInfo">—</span>
 
             <button class="btn" id="toolSelectBtn">Sélection</button>
-
             <button class="btn" id="toolTextBtn">Texte</button>
             <button class="btn" id="toolRectBtn">Carré</button>
             <button class="btn" id="toolCircleBtn">Rond</button>
@@ -171,7 +172,7 @@
 
         <!-- Properties panel -->
         <div class="props" id="propsPanel" style="display:none;">
-          <div class="group" id="propsCommon">
+          <div class="group">
             <span class="pill" id="propsKind">Objet</span>
           </div>
 
@@ -215,14 +216,9 @@
         <div class="page">
           <div class="canvasWrap" id="canvasWrap">
             <canvas id="previewCanvas"></canvas>
-
-            <!-- SVG annotation overlay -->
             <svg id="svgOverlay"></svg>
-
-            <!-- Crop overlay -->
             <div id="cropBox"><div class="br"></div></div>
           </div>
-
           <div class="hint" id="hint">Charge un fichier pour afficher l’aperçu.</div>
         </div>
       </div>
@@ -237,51 +233,26 @@
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
   // ---------- STATE ----------
-  /**
-   * item:
-   *  pdf: { type:'pdf', srcPdfU8, pageIndex, crop?, annots:[] }
-   *  img: { type:'img', dataUrl, crop?, annots:[] }
-   *
-   * crop:
-   *  pdf (points): { left,bottom,right,top }
-   *  img (pixels): { x,y,w,h }
-   *
-   * annots:
-   *  text:  {id, kind:'text', xN,yN, text, size, color}
-   *  rect:  {id, kind:'rect', xN,yN,wN,hN, stroke, strokeW, fill} fill = null or '#RRGGBB'
-   *  circ:  {id, kind:'circle', xN,yN,wN,hN, stroke, strokeW, fill}
-   *  line:  {id, kind:'line', x1N,y1N,x2N,y2N, stroke, strokeW}
-   *  arrow: {id, kind:'arrow', x1N,y1N,x2N,y2N, stroke, strokeW}
-   *  emoji: {id, kind:'emoji', xN,yN, emoji, size}   (export as PNG)
-   */
   const state = { items: [], activeIndex: -1 };
-
-  // reorder
   let dragFromIndex = -1;
 
-  // modes/tools
   const TOOL = { SELECT:'select', TEXT:'text', RECT:'rect', CIRCLE:'circle', LINE:'line', ARROW:'arrow', SMILEY:'smiley', CROP:'crop' };
   let tool = TOOL.SELECT;
 
-  // selection
   let selectedId = null;
 
-  // preview meta
-  const previewMeta = {
-    kind: null, // 'pdf'|'img'
-    canvasW: 0, canvasH: 0,
-    pdfPtsW: 0, pdfPtsH: 0,
-    imgNatW: 0, imgNatH: 0
-  };
+  const previewMeta = { kind:null, canvasW:0, canvasH:0, pdfPtsW:0, pdfPtsH:0, imgNatW:0, imgNatH:0 };
 
-  // crop UI (canvas coords)
+  // crop UI in canvas coords
   let cropUI = { x:40, y:40, w:200, h:260, dragging:false, resizing:false, dx:0, dy:0 };
 
-  // draw tool temp
-  let drawTemp = null; // {kind, startX, startY, ...} in canvas coords
-
-  // render token
+  // temp draw
+  let drawTemp = null;
   let renderToken = 0;
+
+  // selection drag + handle drag
+  let dragSel = null;   // move object
+  let dragHandle = null; // move endpoint handle for line/arrow
 
   // ---------- DOM ----------
   const fileInput = document.getElementById('fileInput');
@@ -314,7 +285,7 @@
 
   const delAnnotBtn = document.getElementById('delAnnotBtn');
 
-  // properties panel
+  // props
   const propsPanel = document.getElementById('propsPanel');
   const propsKind = document.getElementById('propsKind');
   const propsText = document.getElementById('propsText');
@@ -338,11 +309,17 @@
   const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
   const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 
+  function safeNum(v, fallback){
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function getActiveItem(){
     const i = state.activeIndex;
     if (i < 0 || i >= state.items.length) return null;
     return state.items[i];
   }
+
   function ensureArrays(item){
     if (!item.annots) item.annots = [];
   }
@@ -352,12 +329,12 @@
     pageInfoEl.textContent = (state.activeIndex >= 0) ? `Page montage : ${state.activeIndex+1}` : '—';
     applyCropBtn.disabled = !(getActiveItem() && tool === TOOL.CROP);
     resetCropBtn.disabled = !getActiveItem();
+    delAnnotBtn.disabled = !selectedId;
   }
 
   function setTool(next){
     tool = next;
 
-    // toggle button styles
     const on = (btn, isOn) => btn.classList.toggle('toggleOn', isOn);
     on(toolSelectBtn, tool===TOOL.SELECT);
     on(toolTextBtn, tool===TOOL.TEXT);
@@ -368,43 +345,24 @@
     on(toolSmileyBtn, tool===TOOL.SMILEY);
     on(modeCropBtn, tool===TOOL.CROP);
 
-    if (tool !== TOOL.SELECT) {
-      // leaving selection tool still keeps selection, but no drag handles except select
-    }
-
-    // crop overlay
     if (tool === TOOL.CROP && getActiveItem()) showCropOverlay();
     else hideCropOverlay();
 
-    // hints
-    if (!getActiveItem()) {
-      hintEl.textContent = "Charge un fichier pour afficher l’aperçu.";
-    } else {
-      hintEl.textContent =
-        tool===TOOL.SELECT ? "Sélection : clique un objet, déplace-le. Double-clic sur un texte pour l’éditer."
-        : tool===TOOL.TEXT ? "Texte : clique pour placer. Double-clic ensuite pour éditer."
-        : tool===TOOL.RECT ? "Carré : clique-glisse pour dessiner."
-        : tool===TOOL.CIRCLE ? "Rond : clique-glisse pour dessiner."
-        : tool===TOOL.LINE ? "Ligne : clique-glisse pour dessiner."
-        : tool===TOOL.ARROW ? "Flèche : clique-glisse pour dessiner."
-        : tool===TOOL.SMILEY ? "Smiley : clique pour placer."
-        : tool===TOOL.CROP ? "Rogner : ajuste le rectangle puis clique “Appliquer”."
-        : "—";
-    }
+    const has = !!getActiveItem();
+    hintEl.textContent = !has ? "Charge un fichier pour afficher l’aperçu." :
+      tool===TOOL.SELECT ? "Sélection : clique un objet, déplace-le. Poignées sur lignes/flèches. Double-clic texte pour éditer."
+      : tool===TOOL.TEXT ? "Texte : clique pour placer."
+      : tool===TOOL.RECT ? "Carré : clique-glisse pour dessiner."
+      : tool===TOOL.CIRCLE ? "Rond : clique-glisse pour dessiner."
+      : tool===TOOL.LINE ? "Ligne : clique-glisse pour dessiner."
+      : tool===TOOL.ARROW ? "Flèche : clique-glisse pour dessiner."
+      : tool===TOOL.SMILEY ? "Smiley : clique pour placer."
+      : tool===TOOL.CROP ? "Rogner : ajuste le rectangle puis clique “Appliquer”."
+      : "—";
 
-    applyCropBtn.disabled = !(getActiveItem() && tool===TOOL.CROP);
-    delAnnotBtn.disabled = !selectedId;
-
-    renderSvgOverlay(); // refresh selection visuals
-  }
-
-  function downloadBytes(bytes, filename){
-    const blob = new Blob([bytes], { type:'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename || 'export.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
+    setStatus();
+    renderSvgOverlay();
+    showPropsForSelection();
   }
 
   function fileToDataUrl(file){
@@ -414,6 +372,15 @@
       r.onerror = reject;
       r.readAsDataURL(file);
     });
+  }
+
+  function downloadBytes(bytes, filename){
+    const blob = new Blob([bytes], { type:'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename || 'export.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function moveItem(from,to){
@@ -435,7 +402,15 @@
     return { x:(e.clientX - rect.left)*scaleX, y:(e.clientY - rect.top)*scaleY };
   }
 
-  // Visible rect in canvas coords (full canvas, or mapped crop)
+  function hexToRgb01(hex){
+    const h = (hex || '#ffffff').replace('#','');
+    const r = parseInt(h.slice(0,2),16)/255;
+    const g = parseInt(h.slice(2,4),16)/255;
+    const b = parseInt(h.slice(4,6),16)/255;
+    return { r, g, b };
+  }
+
+  // Visible rect in canvas coords (full canvas or crop)
   function getVisibleRectCanvas(item){
     const cw = previewMeta.canvasW, ch = previewMeta.canvasH;
     if (!item || !item.crop) return { x:0, y:0, w:cw, h:ch };
@@ -446,14 +421,13 @@
 
       const x = (left / pw) * cw;
       const w = ((right - left) / pw) * cw;
-
       const y = ((ph - top) / ph) * ch;
       const h = ((top - bottom) / ph) * ch;
-
       return { x, y, w, h };
     } else {
       const iw = previewMeta.imgNatW, ih = previewMeta.imgNatH;
       const { x:ix, y:iy, w:iw2, h:ih2 } = item.crop;
+
       const x = (ix / iw) * cw;
       const y = (iy / ih) * ch;
       const w = (iw2 / iw) * cw;
@@ -466,6 +440,28 @@
   function getVisibleRectPdfPts(page, cropPts){
     if (!cropPts) return { x0:0, y0:0, w: page.getWidth(), h: page.getHeight() };
     return { x0: cropPts.left, y0: cropPts.bottom, w: (cropPts.right-cropPts.left), h: (cropPts.top-cropPts.bottom) };
+  }
+
+  // Arrow head points (absolute coords) based on (x1,y1)->(x2,y2)
+  function computeArrowHead(x1,y1,x2,y2, strokeW){
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const ux = dx / len, uy = dy / len;
+
+    const headLen = Math.max(14, strokeW * 5);
+    const headWid = Math.max(10, strokeW * 3.2);
+
+    const bx = x2 - ux * headLen;
+    const by = y2 - uy * headLen;
+
+    const px = -uy, py = ux;
+
+    const p1 = { x: x2, y: y2 };
+    const p2 = { x: bx + px * headWid/2, y: by + py * headWid/2 };
+    const p3 = { x: bx - px * headWid/2, y: by - py * headWid/2 };
+
+    return { p1, p2, p3 };
   }
 
   // ---------- IMPORT ----------
@@ -484,10 +480,9 @@
   async function addFiles(files){
     for (const file of files){
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-
       if (isPdf){
         const ab = await file.arrayBuffer();
-        const srcPdfU8 = new Uint8Array(ab); // master buffer (never detached)
+        const srcPdfU8 = new Uint8Array(ab); // master (never detached)
         await addPdfPages(srcPdfU8, file.name);
       } else if (file.type.startsWith('image/')){
         const dataUrl = await fileToDataUrl(file);
@@ -501,7 +496,7 @@
   }
 
   async function addPdfPages(srcPdfU8, filename){
-    const loadingTask = pdfjsLib.getDocument({ data: srcPdfU8.slice(0) }); // pass copy to PDF.js
+    const loadingTask = pdfjsLib.getDocument({ data: srcPdfU8.slice(0) }); // copy to PDF.js
     const pdf = await loadingTask.promise;
     for (let i=0; i<pdf.numPages; i++){
       state.items.push({ type:'pdf', name:filename, srcPdfU8, pageIndex:i, crop:null, annots:[] });
@@ -538,7 +533,6 @@
     setTool(tool);
   });
 
-  // tool buttons
   toolSelectBtn.addEventListener('click', ()=>setTool(TOOL.SELECT));
   toolTextBtn.addEventListener('click', ()=>setTool(TOOL.TEXT));
   toolRectBtn.addEventListener('click', ()=>setTool(TOOL.RECT));
@@ -546,10 +540,7 @@
   toolLineBtn.addEventListener('click', ()=>setTool(TOOL.LINE));
   toolArrowBtn.addEventListener('click', ()=>setTool(TOOL.ARROW));
   toolSmileyBtn.addEventListener('click', ()=>setTool(TOOL.SMILEY));
-
-  modeCropBtn.addEventListener('click', ()=>{
-    setTool(tool === TOOL.CROP ? TOOL.SELECT : TOOL.CROP);
-  });
+  modeCropBtn.addEventListener('click', ()=> setTool(tool === TOOL.CROP ? TOOL.SELECT : TOOL.CROP));
 
   applyCropBtn.addEventListener('click', async ()=>{
     const item = getActiveItem();
@@ -589,7 +580,7 @@
     setTool(tool);
   });
 
-  // ---------- PROPS BINDINGS ----------
+  // ---------- PROPS ----------
   function showPropsForSelection(){
     const item = getActiveItem();
     if (!item || !selectedId) {
@@ -616,21 +607,20 @@
     if (a.kind === 'text') {
       propsText.style.display = 'flex';
       textValue.value = a.text || '';
-      textSize.value = a.size || 18;
+      textSize.value = a.size || 24;
       textColor.value = a.color || '#ffffff';
     }
 
     if (a.kind === 'rect' || a.kind === 'circle' || a.kind === 'line' || a.kind === 'arrow') {
       propsStrokeFill.style.display = 'flex';
       strokeColor.value = a.stroke || '#2b5cff';
-      strokeWidth.value = a.strokeW || 3;
+      strokeWidth.value = a.strokeW || 4;
 
       if (a.kind === 'rect' || a.kind === 'circle') {
         fillMode.value = a.fill ? 'color' : 'none';
         fillColorWrap.style.display = (fillMode.value === 'color') ? 'flex' : 'none';
         fillColor.value = a.fill || '#ffffff';
       } else {
-        // line/arrow: no fill controls
         fillMode.value = 'none';
         fillColorWrap.style.display = 'none';
       }
@@ -639,7 +629,7 @@
     if (a.kind === 'emoji') {
       propsEmoji.style.display = 'flex';
       emojiSelect.value = a.emoji || '🙂';
-      emojiSize.value = a.size || 64;
+      emojiSize.value = a.size || 72;
     }
   }
 
@@ -654,11 +644,11 @@
   }
 
   textValue.addEventListener('input', ()=>updateSelected(a => { if (a.kind==='text') a.text = textValue.value; }));
-  textSize.addEventListener('input', ()=>updateSelected(a => { if (a.kind==='text') a.size = safeNum(textSize.value, 18); }));
+  textSize.addEventListener('input', ()=>updateSelected(a => { if (a.kind==='text') a.size = safeNum(textSize.value, 24); }));
   textColor.addEventListener('input', ()=>updateSelected(a => { if (a.kind==='text') a.color = textColor.value; }));
 
   strokeColor.addEventListener('input', ()=>updateSelected(a => { if (a.stroke !== undefined) a.stroke = strokeColor.value; }));
-  strokeWidth.addEventListener('input', ()=>updateSelected(a => { if (a.strokeW !== undefined) a.strokeW = safeNum(strokeWidth.value, 3); }));
+  strokeWidth.addEventListener('input', ()=>updateSelected(a => { if (a.strokeW !== undefined) a.strokeW = safeNum(strokeWidth.value, 4); }));
 
   fillMode.addEventListener('change', ()=>{
     fillColorWrap.style.display = (fillMode.value === 'color') ? 'flex' : 'none';
@@ -675,27 +665,13 @@
   }));
 
   emojiSelect.addEventListener('change', ()=>updateSelected(a => { if (a.kind==='emoji') a.emoji = emojiSelect.value; }));
-  emojiSize.addEventListener('input', ()=>updateSelected(a => { if (a.kind==='emoji') a.size = safeNum(emojiSize.value, 64); }));
+  emojiSize.addEventListener('input', ()=>updateSelected(a => { if (a.kind==='emoji') a.size = safeNum(emojiSize.value, 72); }));
 
-  function safeNum(v, fallback){
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  // ---------- SVG OVERLAY RENDER ----------
+  // ---------- SVG OVERLAY ----------
   function svgEl(name, attrs){
     const el = document.createElementNS('http://www.w3.org/2000/svg', name);
     for (const [k,v] of Object.entries(attrs || {})) el.setAttribute(k, String(v));
     return el;
-  }
-
-  function hexToRgb01(hex){
-    // accepts #RRGGBB
-    const h = (hex || '#ffffff').replace('#','');
-    const r = parseInt(h.slice(0,2),16)/255;
-    const g = parseInt(h.slice(2,4),16)/255;
-    const b = parseInt(h.slice(4,6),16)/255;
-    return { r, g, b };
   }
 
   function renderSvgOverlay(){
@@ -703,34 +679,18 @@
     const cw = previewMeta.canvasW || 1;
     const ch = previewMeta.canvasH || 1;
 
-    // match SVG to canvas pixel space
     svgOverlay.setAttribute('viewBox', `0 0 ${cw} ${ch}`);
     svgOverlay.setAttribute('preserveAspectRatio', 'none');
     svgOverlay.innerHTML = '';
-
-    // arrow marker
-    const defs = svgEl('defs');
-    const marker = svgEl('marker', {
-      id: 'arrowHead',
-      viewBox: '0 0 10 10',
-      refX: '9', refY: '5',
-      markerWidth: '8', markerHeight: '8',
-      orient: 'auto-start-reverse'
-    });
-    marker.appendChild(svgEl('path', { d:'M 0 0 L 10 5 L 0 10 z', fill:'#ffffff' }));
-    defs.appendChild(marker);
-    svgOverlay.appendChild(defs);
 
     if (!item) return;
     ensureArrays(item);
 
     const vis = getVisibleRectCanvas(item);
 
-    // render objects
-    for (const a of item.annots) {
+    // Render objects
+    for (const a of item.annots){
       const g = svgEl('g', { 'data-id': a.id });
-
-      // selection hit area
       g.style.cursor = (tool===TOOL.SELECT) ? 'move' : 'default';
 
       if (a.kind === 'text') {
@@ -740,7 +700,7 @@
         const t = svgEl('text', {
           x, y,
           fill: a.color || '#ffffff',
-          'font-size': a.size || 18,
+          'font-size': a.size || 24,
           'font-family': 'Arial, Helvetica, sans-serif'
         });
         t.textContent = a.text || '';
@@ -753,7 +713,7 @@
         const t = svgEl('text', {
           x, y,
           fill: '#ffffff',
-          'font-size': a.size || 64,
+          'font-size': a.size || 72,
           'font-family': 'Arial, Helvetica, sans-serif'
         });
         t.textContent = a.emoji || '🙂';
@@ -767,22 +727,12 @@
         const h = a.hN * vis.h;
         const y = yTop - h;
 
-        const common = {
-          stroke: a.stroke || '#2b5cff',
-          'stroke-width': a.strokeW || 3,
-          fill: a.fill ? a.fill : 'none'
-        };
+        const common = { stroke: a.stroke || '#2b5cff', 'stroke-width': a.strokeW || 4, fill: a.fill ? a.fill : 'none' };
 
         if (a.kind === 'rect') {
           g.appendChild(svgEl('rect', { x, y, width:w, height:h, rx:10, ry:10, ...common }));
         } else {
-          g.appendChild(svgEl('ellipse', {
-            cx: x + w/2,
-            cy: y + h/2,
-            rx: w/2,
-            ry: h/2,
-            ...common
-          }));
+          g.appendChild(svgEl('ellipse', { cx:x+w/2, cy:y+h/2, rx:w/2, ry:h/2, ...common }));
         }
       }
 
@@ -792,26 +742,39 @@
         const x2 = vis.x + a.x2N * vis.w;
         const y2 = vis.y + (1 - a.y2N) * vis.h;
 
-        const line = svgEl('line', {
-          x1, y1, x2, y2,
-          stroke: a.stroke || '#2b5cff',
-          'stroke-width': a.strokeW || 3,
-          'stroke-linecap': 'round'
-        });
+        const stroke = a.stroke || '#2b5cff';
+        const sw = a.strokeW || 4;
 
+        // line
+        g.appendChild(svgEl('line', {
+          x1, y1, x2, y2,
+          stroke,
+          'stroke-width': sw,
+          'stroke-linecap': 'round'
+        }));
+
+        // arrow head as filled triangle, SAME COLOR
         if (a.kind === 'arrow') {
-          line.setAttribute('marker-end', 'url(#arrowHead)');
-          // match marker color to stroke: easiest is set marker path fill via CSS variable not trivial;
-          // for now keep white arrow head; export PDF will use stroke color.
+          const { p1, p2, p3 } = computeArrowHead(x1,y1,x2,y2, sw);
+          const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} Z`;
+          g.appendChild(svgEl('path', { d, fill: stroke, stroke: 'none' }));
         }
-        g.appendChild(line);
       }
 
-      // selection box
+      // selection visuals + handles for line/arrow
       if (a.id === selectedId) {
         const bb = computeAnnotBBoxCanvas(a, vis);
-        if (bb) {
-          g.appendChild(svgEl('rect', { x: bb.x, y: bb.y, width: bb.w, height: bb.h, class: 'selBox' }));
+        if (bb) g.appendChild(svgEl('rect', { x: bb.x, y: bb.y, width: bb.w, height: bb.h, class: 'selBox' }));
+
+        if (a.kind === 'line' || a.kind === 'arrow') {
+          const x1 = vis.x + a.x1N * vis.w;
+          const y1 = vis.y + (1 - a.y1N) * vis.h;
+          const x2 = vis.x + a.x2N * vis.w;
+          const y2 = vis.y + (1 - a.y2N) * vis.h;
+
+          const h1 = svgEl('circle', { cx:x1, cy:y1, r:7, class:'handleDot', 'data-handle':'p1' });
+          const h2 = svgEl('circle', { cx:x2, cy:y2, r:7, class:'handleDot', 'data-handle':'p2' });
+          g.appendChild(h1); g.appendChild(h2);
         }
       }
 
@@ -822,12 +785,12 @@
   }
 
   function computeAnnotBBoxCanvas(a, vis){
-    // rough bbox for selection visuals
     if (a.kind === 'text' || a.kind === 'emoji') {
       const x = vis.x + a.xN * vis.w;
       const y = vis.y + (1 - a.yN) * vis.h;
-      const size = a.size || 18;
-      return { x: x - 2, y: y - size, w: Math.max(40, (a.text||a.emoji||'').length * (size*0.6)), h: size + 8 };
+      const size = a.size || 24;
+      const len = (a.text || a.emoji || '').length;
+      return { x: x - 6, y: y - size - 4, w: Math.max(46, len * (size*0.62)), h: size + 14 };
     }
     if (a.kind === 'rect' || a.kind === 'circle') {
       const x = vis.x + a.xN * vis.w;
@@ -848,54 +811,74 @@
     return null;
   }
 
-  // ---------- SVG INTERACTION (select/move/edit/draw) ----------
   function hitAnnotIdFromEvent(e){
     const g = e.target.closest('g[data-id]');
     return g ? g.getAttribute('data-id') : null;
   }
 
-  let dragSel = null; // {id, startPos, origAnnot...} in normalized coords
+  // ---------- SVG INTERACTION ----------
   svgOverlay.addEventListener('pointerdown', async (e)=>{
     const item = getActiveItem();
     if (!item) return;
     ensureArrays(item);
 
+    if (tool === TOOL.CROP) return;
+
     const pos = getCanvasPos(e);
     const vis = getVisibleRectCanvas(item);
 
-    if (tool === TOOL.CROP) return; // crop uses HTML overlay
+    // handle drag (line endpoints)
+    const handle = e.target && e.target.getAttribute && e.target.getAttribute('data-handle');
+    if (tool === TOOL.SELECT && handle) {
+      const id = hitAnnotIdFromEvent(e);
+      if (!id) return;
+      selectedId = id;
+      const a = item.annots.find(x => x.id === id);
+      if (!a || (a.kind!=='line' && a.kind!=='arrow')) return;
 
-    // SELECT tool: click object to select & drag
+      dragHandle = { id, which: handle, startX: pos.x, startY: pos.y };
+      svgOverlay.setPointerCapture(e.pointerId);
+      renderSvgOverlay();
+      showPropsForSelection();
+      e.preventDefault();
+      return;
+    }
+
     if (tool === TOOL.SELECT) {
       const id = hitAnnotIdFromEvent(e);
       selectedId = id;
       renderSvgOverlay();
-      if (!id) return;
+      showPropsForSelection();
+      setStatus();
 
+      if (!id) return;
       const a = item.annots.find(x => x.id === id);
       if (!a) return;
 
-      // start dragging
       dragSel = { id, startX: pos.x, startY: pos.y, a0: JSON.parse(JSON.stringify(a)) };
       svgOverlay.setPointerCapture(e.pointerId);
       e.preventDefault();
       return;
     }
 
-    // Drawing tools
+    // Creation tools
     selectedId = null;
     renderSvgOverlay();
+    showPropsForSelection();
+    setStatus();
 
     if (tool === TOOL.TEXT) {
-      const text = prompt("Texte :", "Texte");
-      if (!text) return;
-      const size = safeNum(prompt("Taille du texte :", "24"), 24);
-      const color = prompt("Couleur (hex ex: #ffffff) :", "#ffffff") || "#ffffff";
-
       const xN = clamp((pos.x - vis.x) / vis.w, 0, 1);
       const yN = clamp(1 - ((pos.y - vis.y) / vis.h), 0, 1);
 
-      const a = { id: uid(), kind:'text', xN, yN, text, size, color };
+      const a = {
+        id: uid(),
+        kind:'text',
+        xN, yN,
+        text: 'Texte',
+        size: safeNum(textSize.value, 24),
+        color: textColor.value || '#ffffff'
+      };
       item.annots.push(a);
       selectedId = a.id;
       await renderAll();
@@ -904,12 +887,9 @@
     }
 
     if (tool === TOOL.SMILEY) {
-      const emoji = emojiSelect.value || '🙂';
-      const size = 72;
       const xN = clamp((pos.x - vis.x) / vis.w, 0, 1);
       const yN = clamp(1 - ((pos.y - vis.y) / vis.h), 0, 1);
-
-      const a = { id: uid(), kind:'emoji', xN, yN, emoji, size };
+      const a = { id: uid(), kind:'emoji', xN, yN, emoji: (emojiSelect.value||'🙂'), size: safeNum(emojiSize.value, 72) };
       item.annots.push(a);
       selectedId = a.id;
       await renderAll();
@@ -917,7 +897,6 @@
       return;
     }
 
-    // click-drag shapes/lines
     if ([TOOL.RECT, TOOL.CIRCLE, TOOL.LINE, TOOL.ARROW].includes(tool)) {
       drawTemp = { tool, startX: pos.x, startY: pos.y, curX: pos.x, curY: pos.y, visSnap: vis };
       svgOverlay.setPointerCapture(e.pointerId);
@@ -934,7 +913,23 @@
     const pos = getCanvasPos(e);
     const vis = getVisibleRectCanvas(item);
 
-    // drag selection
+    // endpoint handle drag
+    if (dragHandle && tool === TOOL.SELECT) {
+      const a = item.annots.find(x => x.id === dragHandle.id);
+      if (!a) return;
+
+      const xN = clamp((pos.x - vis.x)/vis.w, 0, 1);
+      const yN = clamp(1 - ((pos.y - vis.y)/vis.h), 0, 1);
+
+      if (dragHandle.which === 'p1') { a.x1N = xN; a.y1N = yN; }
+      else { a.x2N = xN; a.y2N = yN; }
+
+      renderSvgOverlay();
+      e.preventDefault();
+      return;
+    }
+
+    // move object drag
     if (dragSel && tool === TOOL.SELECT) {
       const a = item.annots.find(x => x.id === dragSel.id);
       if (!a) return;
@@ -942,25 +937,24 @@
       const dx = pos.x - dragSel.startX;
       const dy = pos.y - dragSel.startY;
 
-      // move based on kind
       if (a.kind === 'text' || a.kind === 'emoji') {
-        const xCanvas0 = vis.x + dragSel.a0.xN * vis.w;
-        const yCanvas0 = vis.y + (1 - dragSel.a0.yN) * vis.h;
+        const x0 = vis.x + dragSel.a0.xN * vis.w;
+        const y0 = vis.y + (1 - dragSel.a0.yN) * vis.h;
 
-        const xCanvas = xCanvas0 + dx;
-        const yCanvas = yCanvas0 + dy;
+        const x = x0 + dx;
+        const y = y0 + dy;
 
-        a.xN = clamp((xCanvas - vis.x) / vis.w, 0, 1);
-        a.yN = clamp(1 - ((yCanvas - vis.y) / vis.h), 0, 1);
+        a.xN = clamp((x - vis.x)/vis.w, 0, 1);
+        a.yN = clamp(1 - ((y - vis.y)/vis.h), 0, 1);
       } else if (a.kind === 'rect' || a.kind === 'circle') {
-        const xCanvas0 = vis.x + dragSel.a0.xN * vis.w;
+        const x0 = vis.x + dragSel.a0.xN * vis.w;
         const yTop0 = vis.y + (1 - dragSel.a0.yN) * vis.h;
 
-        const xCanvas = xCanvas0 + dx;
+        const x = x0 + dx;
         const yTop = yTop0 + dy;
 
-        a.xN = clamp((xCanvas - vis.x) / vis.w, 0, 1);
-        a.yN = clamp(1 - ((yTop - vis.y) / vis.h), 0, 1);
+        a.xN = clamp((x - vis.x)/vis.w, 0, 1);
+        a.yN = clamp(1 - ((yTop - vis.y)/vis.h), 0, 1);
       } else if (a.kind === 'line' || a.kind === 'arrow') {
         const x1c0 = vis.x + dragSel.a0.x1N * vis.w;
         const y1c0 = vis.y + (1 - dragSel.a0.y1N) * vis.h;
@@ -970,10 +964,10 @@
         const x1c = x1c0 + dx, y1c = y1c0 + dy;
         const x2c = x2c0 + dx, y2c = y2c0 + dy;
 
-        a.x1N = clamp((x1c - vis.x) / vis.w, 0, 1);
-        a.y1N = clamp(1 - ((y1c - vis.y) / vis.h), 0, 1);
-        a.x2N = clamp((x2c - vis.x) / vis.w, 0, 1);
-        a.y2N = clamp(1 - ((y2c - vis.y) / vis.h), 0, 1);
+        a.x1N = clamp((x1c - vis.x)/vis.w, 0, 1);
+        a.y1N = clamp(1 - ((y1c - vis.y)/vis.h), 0, 1);
+        a.x2N = clamp((x2c - vis.x)/vis.w, 0, 1);
+        a.y2N = clamp(1 - ((y2c - vis.y)/vis.h), 0, 1);
       }
 
       renderSvgOverlay();
@@ -985,10 +979,8 @@
     if (drawTemp) {
       drawTemp.curX = pos.x;
       drawTemp.curY = pos.y;
-
-      // render a preview temporary object without committing
       renderSvgOverlay();
-      renderDrawTempOverlay(item, vis);
+      renderDrawTemp();
       e.preventDefault();
     }
   });
@@ -998,7 +990,13 @@
     if (!item) return;
     ensureArrays(item);
 
-    // finish drag
+    if (dragHandle) {
+      dragHandle = null;
+      showPropsForSelection();
+      e.preventDefault();
+      return;
+    }
+
     if (dragSel) {
       dragSel = null;
       showPropsForSelection();
@@ -1006,7 +1004,6 @@
       return;
     }
 
-    // finish draw
     if (drawTemp) {
       const t = drawTemp;
       drawTemp = null;
@@ -1015,12 +1012,11 @@
       const x0 = t.startX, y0 = t.startY;
       const x1 = t.curX, y1 = t.curY;
 
-      // create annot in normalized coords within vis
       const xMin = Math.min(x0,x1), xMax = Math.max(x0,x1);
       const yMin = Math.min(y0,y1), yMax = Math.max(y0,y1);
 
       const stroke = strokeColor.value || '#2b5cff';
-      const strokeW = safeNum(strokeWidth.value, 3);
+      const strokeW = safeNum(strokeWidth.value, 4);
 
       let newA = null;
 
@@ -1029,16 +1025,9 @@
         const yTopN = clamp(1 - ((yMin - vis.y)/vis.h), 0, 1);
         const wN = clamp((xMax - xMin)/vis.w, 0.001, 1);
         const hN = clamp((yMax - yMin)/vis.h, 0.001, 1);
-
         const fill = (fillMode.value === 'color') ? (fillColor.value || '#ffffff') : null;
 
-        newA = {
-          id: uid(),
-          kind: (t.tool === TOOL.RECT) ? 'rect' : 'circle',
-          xN, yN: yTopN, wN, hN,
-          stroke, strokeW,
-          fill
-        };
+        newA = { id: uid(), kind: (t.tool===TOOL.RECT?'rect':'circle'), xN, yN:yTopN, wN, hN, stroke, strokeW, fill };
       }
 
       if (t.tool === TOOL.LINE || t.tool === TOOL.ARROW) {
@@ -1047,12 +1036,7 @@
         const x2N = clamp((x1 - vis.x)/vis.w, 0, 1);
         const y2N = clamp(1 - ((y1 - vis.y)/vis.h), 0, 1);
 
-        newA = {
-          id: uid(),
-          kind: (t.tool === TOOL.LINE) ? 'line' : 'arrow',
-          x1N, y1N, x2N, y2N,
-          stroke, strokeW
-        };
+        newA = { id: uid(), kind: (t.tool===TOOL.LINE?'line':'arrow'), x1N, y1N, x2N, y2N, stroke, strokeW };
       }
 
       if (newA) {
@@ -1065,6 +1049,7 @@
       }
 
       e.preventDefault();
+      return;
     }
   });
 
@@ -1089,26 +1074,16 @@
       setTool(TOOL.SELECT);
       return;
     }
-
-    if (a.kind === 'emoji') {
-      const next = prompt("Modifier le smiley (ex: 🙂) :", a.emoji || "🙂");
-      if (next === null || !next) return;
-      a.emoji = next;
-      await renderAll();
-      setTool(TOOL.SELECT);
-      return;
-    }
   });
 
-  function renderDrawTempOverlay(item, vis){
+  function renderDrawTemp(){
     if (!drawTemp) return;
+    const stroke = strokeColor.value || '#2b5cff';
+    const sw = safeNum(strokeWidth.value, 4);
+    const fill = (fillMode.value === 'color') ? (fillColor.value || '#ffffff') : 'none';
 
     const x0 = drawTemp.startX, y0 = drawTemp.startY;
     const x1 = drawTemp.curX, y1 = drawTemp.curY;
-
-    const stroke = strokeColor.value || '#2b5cff';
-    const sw = safeNum(strokeWidth.value, 3);
-    const fill = (fillMode.value === 'color') ? (fillColor.value || '#ffffff') : 'none';
 
     const g = svgEl('g', { 'data-temp': '1' });
 
@@ -1126,15 +1101,18 @@
     }
 
     if (drawTemp.tool === TOOL.LINE || drawTemp.tool === TOOL.ARROW) {
-      const line = svgEl('line', { x1:x0, y1:y0, x2:x1, y2:y1, stroke, 'stroke-width':sw, 'stroke-linecap':'round' });
-      if (drawTemp.tool === TOOL.ARROW) line.setAttribute('marker-end', 'url(#arrowHead)');
-      g.appendChild(line);
+      g.appendChild(svgEl('line', { x1:x0, y1:y0, x2:x1, y2:y1, stroke, 'stroke-width':sw, 'stroke-linecap':'round' }));
+      if (drawTemp.tool === TOOL.ARROW) {
+        const { p1,p2,p3 } = computeArrowHead(x0,y0,x1,y1, sw);
+        const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} Z`;
+        g.appendChild(svgEl('path', { d, fill: stroke, stroke:'none' }));
+      }
     }
 
     svgOverlay.appendChild(g);
   }
 
-  // ---------- CROP OVERLAY (HTML) ----------
+  // ---------- CROP OVERLAY ----------
   function showCropOverlay(){
     cropBoxEl.style.display = 'block';
     positionCropOverlay();
@@ -1193,7 +1171,7 @@
     cropUI.resizing = false;
   });
 
-  // ---------- RENDER (thumbs + preview) ----------
+  // ---------- RENDER ----------
   async function renderAll(){
     setStatus();
     await renderThumbs();
@@ -1220,7 +1198,6 @@
         setTool(tool);
       });
 
-      // drag reorder
       card.addEventListener('dragstart', (e)=>{
         dragFromIndex = i;
         e.dataTransfer.effectAllowed = 'move';
@@ -1295,7 +1272,6 @@
       previewMeta.kind = null;
       previewCanvas.width = 1; previewCanvas.height = 1;
       ctx.clearRect(0,0,1,1);
-      hintEl.textContent = 'Charge un fichier pour afficher l’aperçu.';
       hideCropOverlay();
       return;
     }
@@ -1320,11 +1296,12 @@
       ctx.clearRect(0,0,cw,ch);
       ctx.drawImage(img, 0, 0, cw, ch);
 
-      // initialize crop box based on existing crop or default
-      const vis = getVisibleRectCanvas(item);
-      cropUI = item.crop ? { ...vis, dragging:false, resizing:false, dx:0, dy:0 } : defaultCrop(cw,ch);
-
-      hintEl.textContent = '';
+      if (item.crop) {
+        const vis = getVisibleRectCanvas(item);
+        cropUI = { ...vis, dragging:false, resizing:false, dx:0, dy:0 };
+      } else {
+        cropUI = defaultCrop(cw,ch);
+      }
     } else {
       const meta = await renderPdfPageToCanvas(item.srcPdfU8, item.pageIndex, previewCanvas, 1.4, 900);
       if (myToken !== renderToken) return;
@@ -1333,9 +1310,7 @@
       previewMeta.canvasW = meta.canvasW; previewMeta.canvasH = meta.canvasH;
       previewMeta.pdfPtsW = meta.pdfPtsW; previewMeta.pdfPtsH = meta.pdfPtsH;
 
-      // initialize crop box based on existing crop or default
       if (item.crop) {
-        // convert crop pts to canvas rect
         const pw = previewMeta.pdfPtsW, ph = previewMeta.pdfPtsH;
         const cw = previewMeta.canvasW, ch = previewMeta.canvasH;
         const x = (item.crop.left / pw) * cw;
@@ -1346,13 +1321,12 @@
       } else {
         cropUI = defaultCrop(previewMeta.canvasW, previewMeta.canvasH);
       }
-
-      hintEl.textContent = '';
     }
 
-    // sync overlay sizes
-    syncOverlayToCanvas();
+    svgOverlay.setAttribute('viewBox', `0 0 ${previewMeta.canvasW||1} ${previewMeta.canvasH||1}`);
+    positionCropOverlay();
 
+    hintEl.textContent = '';
     if (tool === TOOL.CROP) showCropOverlay(); else hideCropOverlay();
   }
 
@@ -1360,26 +1334,12 @@
     return { x:40, y:40, w: Math.max(120, cw-80), h: Math.max(160, ch-80), dragging:false, resizing:false, dx:0, dy:0 };
   }
 
-  function syncOverlayToCanvas(){
-    // ensure svg and crop overlay align with canvas size (canvas pixels)
-    const cw = previewMeta.canvasW || 1;
-    const ch = previewMeta.canvasH || 1;
-
-    // set svg to cover the canvas exactly in CSS pixels via absolute sizing; viewBox is in px
-    svgOverlay.setAttribute('viewBox', `0 0 ${cw} ${ch}`);
-    svgOverlay.style.width = '100%';
-    svgOverlay.style.height = '100%';
-
-    // crop box: already in canvas coords, use pixels
-    positionCropOverlay();
-  }
-
   async function renderPdfPageToCanvas(pdfU8, pageIndex, canvas, baseScale, maxW){
-    const loadingTask = pdfjsLib.getDocument({ data: pdfU8.slice(0) }); // pass copy (prevents detached ArrayBuffer)
+    const loadingTask = pdfjsLib.getDocument({ data: pdfU8.slice(0) }); // copy => no detached buffer
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(pageIndex + 1);
 
-    const view = page.view; // [xMin,yMin,xMax,yMax] points
+    const view = page.view;
     const pdfPtsW = (view[2]-view[0]);
     const pdfPtsH = (view[3]-view[1]);
 
@@ -1395,7 +1355,7 @@
     return { canvasW: canvas.width, canvasH: canvas.height, pdfPtsW, pdfPtsH };
   }
 
-  // ---------- EXPORT ----------
+  // ---------- EXPORT (FIX drawPolygon + arrow color) ----------
   exportBtn.addEventListener('click', async ()=>{
     if (!state.items.length) return;
 
@@ -1405,7 +1365,7 @@
     try{
       const out = await PDFDocument.create();
       const font = await out.embedFont(StandardFonts.Helvetica);
-      const pdfCache = new Map(); // srcPdfU8 -> PDFDocument
+      const pdfCache = new Map();
 
       for (const item of state.items){
         ensureArrays(item);
@@ -1420,7 +1380,6 @@
           const [page] = await out.copyPages(srcDoc, [item.pageIndex]);
           out.addPage(page);
 
-          // apply crop
           if (item.crop && page.setCropBox){
             const { left,bottom,right,top } = item.crop;
             page.setCropBox(left, bottom, right-left, top-bottom);
@@ -1428,13 +1387,12 @@
 
           const vis = getVisibleRectPdfPts(page, item.crop);
 
-          // draw annots
           for (const a of item.annots){
             if (a.kind === 'text') {
               const x = vis.x0 + a.xN * vis.w;
               const y = vis.y0 + a.yN * vis.h;
               const c = hexToRgb01(a.color || '#ffffff');
-              page.drawText(a.text || '', { x, y, size: a.size || 18, font, color: rgb(c.r,c.g,c.b) });
+              page.drawText(a.text || '', { x, y, size: a.size || 24, font, color: rgb(c.r,c.g,c.b) });
             }
 
             if (a.kind === 'rect' || a.kind === 'circle') {
@@ -1445,8 +1403,7 @@
               const y = yTop - h;
 
               const sc = hexToRgb01(a.stroke || '#2b5cff');
-              const sw = a.strokeW || 3;
-
+              const sw = a.strokeW || 4;
               const fill = a.fill ? hexToRgb01(a.fill) : null;
 
               if (a.kind === 'rect') {
@@ -1478,7 +1435,7 @@
               const y2 = vis.y0 + a.y2N * vis.h;
 
               const sc = hexToRgb01(a.stroke || '#2b5cff');
-              const sw = a.strokeW || 3;
+              const sw = a.strokeW || 4;
 
               page.drawLine({
                 start: { x: x1, y: y1 },
@@ -1488,51 +1445,27 @@
               });
 
               if (a.kind === 'arrow') {
-                // arrow head as filled triangle
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const len = Math.max(1, Math.hypot(dx, dy));
-                const ux = dx / len, uy = dy / len;
-
-                const headLen = Math.max(10, sw * 4.5);
-                const headWid = Math.max(8, sw * 3.0);
-
-                // tip at (x2,y2)
-                const bx = x2 - ux * headLen;
-                const by = y2 - uy * headLen;
-
-                // perpendicular
-                const px = -uy, py = ux;
-
-                const p1 = { x: x2, y: y2 };
-                const p2 = { x: bx + px * headWid/2, y: by + py * headWid/2 };
-                const p3 = { x: bx - px * headWid/2, y: by - py * headWid/2 };
-
-                page.drawPolygon([p1,p2,p3], { color: rgb(sc.r,sc.g,sc.b), borderWidth: 0 });
+                // ✅ FIX: no drawPolygon. Use drawSvgPath to fill triangle.
+                const { p1,p2,p3 } = computeArrowHead(x1,y1,x2,y2, sw);
+                const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} Z`;
+                page.drawSvgPath(d, { color: rgb(sc.r,sc.g,sc.b) });
               }
             }
 
             if (a.kind === 'emoji') {
-              // Export emoji as PNG (robust: works even if PDF font lacks emoji)
-              const pngDataUrl = emojiToPngDataUrl(a.emoji || '🙂', a.size || 64);
+              const pngDataUrl = emojiToPngDataUrl(a.emoji || '🙂', a.size || 72);
               const img = await out.embedPng(pngDataUrl);
 
               const x = vis.x0 + a.xN * vis.w;
               const y = vis.y0 + a.yN * vis.h;
 
-              // pdf-lib draws images from bottom-left; use size mapped to points
-              const pxSize = a.size || 64;
-              const w = Math.min(vis.w, pxSize);
-              const h = Math.min(vis.h, pxSize);
-
-              page.drawImage(img, { x, y, width: w, height: h });
+              const s = Math.min(vis.w, Math.min(vis.h, (a.size || 72)));
+              page.drawImage(img, { x, y, width: s, height: s });
             }
           }
 
-        } else if (item.type === 'img') {
-          // apply crop to image first, then embed PNG always
+        } else if (item.type === 'img'){
           const imgEl = await dataUrlToImage(item.dataUrl);
-
           const crop = item.crop
             ? {
                 x: clamp(item.crop.x, 0, imgEl.naturalWidth),
@@ -1545,7 +1478,6 @@
           const pngDataUrl = cropImageToPngDataUrl(imgEl, crop);
           const embedded = await out.embedPng(pngDataUrl);
 
-          // page sized to image (scaled to ~A4 width max)
           const maxW = 595;
           const scale = Math.min(1, maxW / embedded.width);
           const w = embedded.width * scale;
@@ -1554,7 +1486,6 @@
           const page = out.addPage([w, h]);
           page.drawImage(embedded, { x:0, y:0, width:w, height:h });
 
-          // vis for images is whole page (after crop)
           const vis = { x0:0, y0:0, w, h };
 
           for (const a of item.annots){
@@ -1562,7 +1493,7 @@
               const x = vis.x0 + a.xN * vis.w;
               const y = vis.y0 + a.yN * vis.h;
               const c = hexToRgb01(a.color || '#ffffff');
-              page.drawText(a.text || '', { x, y, size: a.size || 18, font, color: rgb(c.r,c.g,c.b) });
+              page.drawText(a.text || '', { x, y, size: a.size || 24, font, color: rgb(c.r,c.g,c.b) });
             }
 
             if (a.kind === 'rect' || a.kind === 'circle') {
@@ -1573,7 +1504,7 @@
               const y = yTop - hh;
 
               const sc = hexToRgb01(a.stroke || '#2b5cff');
-              const sw = a.strokeW || 3;
+              const sw = a.strokeW || 4;
               const fill = a.fill ? hexToRgb01(a.fill) : null;
 
               if (a.kind === 'rect') {
@@ -1605,7 +1536,7 @@
               const y2 = vis.y0 + a.y2N * vis.h;
 
               const sc = hexToRgb01(a.stroke || '#2b5cff');
-              const sw = a.strokeW || 3;
+              const sw = a.strokeW || 4;
 
               page.drawLine({
                 start: { x: x1, y: y1 },
@@ -1615,38 +1546,20 @@
               });
 
               if (a.kind === 'arrow') {
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const len = Math.max(1, Math.hypot(dx, dy));
-                const ux = dx / len, uy = dy / len;
-
-                const headLen = Math.max(10, sw * 4.5);
-                const headWid = Math.max(8, sw * 3.0);
-
-                const bx = x2 - ux * headLen;
-                const by = y2 - uy * headLen;
-
-                const px = -uy, py = ux;
-
-                const p1 = { x: x2, y: y2 };
-                const p2 = { x: bx + px * headWid/2, y: by + py * headWid/2 };
-                const p3 = { x: bx - px * headWid/2, y: by - py * headWid/2 };
-
-                page.drawPolygon([p1,p2,p3], { color: rgb(sc.r,sc.g,sc.b), borderWidth: 0 });
+                const { p1,p2,p3 } = computeArrowHead(x1,y1,x2,y2, sw);
+                const d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} Z`;
+                page.drawSvgPath(d, { color: rgb(sc.r,sc.g,sc.b) });
               }
             }
 
             if (a.kind === 'emoji') {
-              const pngDataUrl2 = emojiToPngDataUrl(a.emoji || '🙂', a.size || 64);
+              const pngDataUrl2 = emojiToPngDataUrl(a.emoji || '🙂', a.size || 72);
               const img = await out.embedPng(pngDataUrl2);
 
               const x = vis.x0 + a.xN * vis.w;
               const y = vis.y0 + a.yN * vis.h;
-              const pxSize = a.size || 64;
-              const ww = Math.min(vis.w, pxSize);
-              const hh = Math.min(vis.h, pxSize);
-
-              page.drawImage(img, { x, y, width: ww, height: hh });
+              const s = Math.min(vis.w, Math.min(vis.h, (a.size || 72)));
+              page.drawImage(img, { x, y, width: s, height: s });
             }
           }
         }
@@ -1663,7 +1576,7 @@
     }
   });
 
-  // ---------- IMAGE/EMOJI HELPERS ----------
+  // ---------- HELPERS ----------
   function dataUrlToImage(dataUrl){
     return new Promise((resolve,reject)=>{
       const img = new Image();
@@ -1699,10 +1612,40 @@
     return String(s||'').replace(/[&<>"']/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c]));
   }
 
+  // ---------- PDF RENDER ----------
+  async function renderPdfPageToCanvas(pdfU8, pageIndex, canvas, baseScale, maxW){
+    const loadingTask = pdfjsLib.getDocument({ data: pdfU8.slice(0) }); // copy: no detached buffer
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(pageIndex + 1);
+
+    const view = page.view;
+    const pdfPtsW = (view[2]-view[0]);
+    const pdfPtsH = (view[3]-view[1]);
+
+    let viewport = page.getViewport({ scale: baseScale });
+    const s = Math.min(1, (maxW || 900) / viewport.width);
+    viewport = page.getViewport({ scale: baseScale * s });
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return { canvasW: canvas.width, canvasH: canvas.height, pdfPtsW, pdfPtsH };
+  }
+
   // ---------- INIT ----------
+  // Default style values in props (so creation uses them)
+  textSize.value = 24;
+  textColor.value = '#ffffff';
+  strokeColor.value = '#2b5cff';
+  strokeWidth.value = 4;
+  fillMode.value = 'none';
+  fillColor.value = '#ffffff';
+  emojiSize.value = 72;
+
   setTool(TOOL.SELECT);
   renderAll();
-
 })();
 </script>
 </body>
