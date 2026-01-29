@@ -761,9 +761,11 @@ function renderSvgOverlay(){
   ensureAnnots(item);
 
   for (const a of item.annots){
+
+    // ---- TEXT
     if (a.kind === 'text'){
       const x = a.xN * cw;
-      const y = (1 - a.yN) * ch; // yN bottom-based -> convert to top-based for SVG
+      const y = (1 - a.yN) * ch;
 
       const g = svgEl('g', { 'data-id': a.id });
       const t = svgEl('text', {
@@ -775,7 +777,23 @@ function renderSvgOverlay(){
       });
       t.textContent = a.text || 'Texte';
       g.appendChild(t);
-          if (a.kind === 'emoji'){
+
+      if (a.id === selectedId){
+        const w = Math.max(60, (t.textContent.length||1) * (a.size||24) * 0.6);
+        const h = (a.size||24) + 14;
+        g.appendChild(svgEl('rect', {
+          x: x-6, y: y-(a.size||24)-6,
+          width: w, height: h,
+          class: 'selBox'
+        }));
+      }
+
+      svgOverlay.appendChild(g);
+      continue;
+    }
+
+    // ---- EMOJI
+    if (a.kind === 'emoji'){
       const x = a.xN * cw;
       const y = (1 - a.yN) * ch;
 
@@ -800,8 +818,10 @@ function renderSvgOverlay(){
       }
 
       svgOverlay.appendChild(g);
+      continue;
     }
 
+    // ---- SHAPES
     if (a.kind === 'rect' || a.kind === 'circle'){
       const x = a.xN * cw;
       const yTop = (1 - a.yN) * ch;
@@ -828,8 +848,6 @@ function renderSvgOverlay(){
 
       if (a.id === selectedId){
         g.appendChild(svgEl('rect', { x, y, width:w, height:h, class:'selBox' }));
-
-        // 4 handles corners
         const handles = [
           {hx:x, hy:y, name:'tl'},
           {hx:x+w, hy:y, name:'tr'},
@@ -846,7 +864,10 @@ function renderSvgOverlay(){
       }
 
       svgOverlay.appendChild(g);
+      continue;
     }
+
+    // ---- ARROW
     if (a.kind === 'arrow'){
       const g = svgEl('g', { 'data-id': a.id });
       const p1 = normToCanvasPoint(a.x1N, a.y1N);
@@ -868,7 +889,6 @@ function renderSvgOverlay(){
       g.appendChild(svgEl('path', { d, fill }));
 
       if (a.id === selectedId){
-        // handles endpoints + control
         g.appendChild(svgEl('circle', { cx:p1.x, cy:p1.y, r:7, class:'handle', 'data-handle':'ap1' }));
         g.appendChild(svgEl('circle', { cx:p2.x, cy:p2.y, r:7, class:'handle', 'data-handle':'ap2' }));
         if (a.style==='curved'){
@@ -878,22 +898,13 @@ function renderSvgOverlay(){
       }
 
       svgOverlay.appendChild(g);
-    }
-
-      if (a.id === selectedId){
-        // approximate bbox
-        const w = Math.max(60, (t.textContent.length||1) * (a.size||24) * 0.6);
-        const h = (a.size||24) + 14;
-        g.appendChild(svgEl('rect', {
-          x: x-6, y: y-(a.size||24)-6,
-          width: w, height: h,
-          class: 'selBox'
-        }));
-      }
-
-      svgOverlay.appendChild(g);
+      continue;
     }
   }
+
+  delAnnotBtn.disabled = !selectedId;
+}
+
 
   delAnnotBtn.disabled = !selectedId;
 }
@@ -926,9 +937,13 @@ svgOverlay.addEventListener('pointerdown', (e)=>{
   const item = getActiveItem();
   if (!item) return;
   ensureAnnots(item);
-    const handle = e.target && e.target.getAttribute && e.target.getAttribute('data-handle');
-  if (tool === TOOL.SELECT && handle){
-    const id = hitAnnotId(e);
+
+  const pos = getCanvasPos(e);
+  const cw = previewCanvas.width || 1;
+  const ch = previewCanvas.height || 1;
+
+  const handle = e.target && e.target.getAttribute && e.target.getAttribute('data-handle');
+
     if (!id) return;
     selectedId = id;
     const a = item.annots.find(x => x.id === id);
@@ -941,7 +956,7 @@ svgOverlay.addEventListener('pointerdown', (e)=>{
     return;
   }
     // Arrow handles
-  if (tool === TOOL.SELECT && handle && (handle === 'ap1' || handle === 'ap2' || handle === 'ac')){
+ if (tool === TOOL.SELECT && handle && (handle==='tl'||handle==='tr'||handle==='bl'||handle==='br')) {
     const id = hitAnnotId(e);
     if (!id) return;
     selectedId = id;
@@ -1000,9 +1015,7 @@ svgOverlay.addEventListener('pointerdown', (e)=>{
   }
 
 
-  const pos = getCanvasPos(e);
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
+
 
   if (tool === TOOL.TEXT){
     const xN = clamp(pos.x / cw, 0, 1);
@@ -1038,6 +1051,8 @@ svgOverlay.addEventListener('pointerdown', (e)=>{
 });
 
 svgOverlay.addEventListener('pointermove', (e)=>{
+    const pos = getCanvasPos(e);
+
   // Resize/move arrow handles
   if (dragHandle){
     const item = getActiveItem();
@@ -1180,10 +1195,6 @@ svgOverlay.addEventListener('pointermove', (e)=>{
   if (!item) return;
   ensureAnnots(item);
 
-  const pos = getCanvasPos(e);
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
-
   const a = item.annots.find(x => x.id === dragSel.id);
   if (!a) return;
 
@@ -1204,51 +1215,44 @@ svgOverlay.addEventListener('pointermove', (e)=>{
 });
 
 svgOverlay.addEventListener('pointerup', ()=>{
-  svgOverlay.addEventListener('pointerup', ()=>{
   const item = getActiveItem();
   if (!item) { dragSel=null; dragHandle=null; drawTemp=null; return; }
   ensureAnnots(item);
 
-  if (drawTemp){
-        if (drawTemp.tool === TOOL.ARROW){
-      const item = getActiveItem();
-      if (!item) { drawTemp=null; return; }
-      ensureAnnots(item);
-
-      // discard tiny
-      if (Math.hypot(drawTemp.x2-drawTemp.x1, drawTemp.y2-drawTemp.y1) < 8){
-        drawTemp = null;
-        renderSvgOverlay();
-        return;
-      }
-
-      const p1N = canvasToNormPoint(drawTemp.x1, drawTemp.y1);
-      const p2N = canvasToNormPoint(drawTemp.x2, drawTemp.y2);
-
-      const a = {
-        id: 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2),
-        kind: 'arrow',
-        style: drawTemp.style,
-        color: drawTemp.color,
-        thickness: drawTemp.thickness,
-        x1N: p1N.xN, y1N: p1N.yN,
-        x2N: p2N.xN, y2N: p2N.yN,
-      };
-
-      if (drawTemp.style === 'curved'){
-        const pcN = canvasToNormPoint(drawTemp.cx, drawTemp.cy);
-        a.cxN = pcN.xN; a.cyN = pcN.yN;
-      }
-
-      item.annots.push(a);
-      selectedId = a.id;
-
+  // Finalize ARROW
+  if (drawTemp && drawTemp.tool === TOOL.ARROW){
+    if (Math.hypot(drawTemp.x2-drawTemp.x1, drawTemp.y2-drawTemp.y1) < 8){
       drawTemp = null;
-      setTool(TOOL.SELECT);
       renderSvgOverlay();
       return;
     }
+    const p1N = canvasToNormPoint(drawTemp.x1, drawTemp.y1);
+    const p2N = canvasToNormPoint(drawTemp.x2, drawTemp.y2);
 
+    const a = {
+      id: 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2),
+      kind: 'arrow',
+      style: drawTemp.style,
+      color: drawTemp.color,
+      thickness: drawTemp.thickness,
+      x1N: p1N.xN, y1N: p1N.yN,
+      x2N: p2N.xN, y2N: p2N.yN,
+    };
+    if (drawTemp.style === 'curved'){
+      const pcN = canvasToNormPoint(drawTemp.cx, drawTemp.cy);
+      a.cxN = pcN.xN; a.cyN = pcN.yN;
+    }
+    item.annots.push(a);
+    selectedId = a.id;
+
+    drawTemp = null;
+    setTool(TOOL.SELECT);
+    renderSvgOverlay();
+    return;
+  }
+
+  // Finalize RECT/CIRCLE
+  if (drawTemp && (drawTemp.tool === TOOL.RECT || drawTemp.tool === TOOL.CIRCLE)){
     const cw = previewCanvas.width || 1;
     const ch = previewCanvas.height || 1;
 
@@ -1274,9 +1278,9 @@ svgOverlay.addEventListener('pointerup', ()=>{
       stroke, strokeW,
       fill
     };
-
     item.annots.push(a);
     selectedId = a.id;
+
     drawTemp = null;
     setTool(TOOL.SELECT);
     renderSvgOverlay();
@@ -1287,7 +1291,6 @@ svgOverlay.addEventListener('pointerup', ()=>{
   dragHandle = null;
 });
 
-});
 
 svgOverlay.addEventListener('dblclick', (e)=>{
   const item = getActiveItem();
