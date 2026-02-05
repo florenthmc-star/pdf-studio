@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PDF Studio — Base (Partie 1)</title>
+  <title>PDF Studio — Tout-en-un (Pro)</title>
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- pdf-lib -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
   <style>
     :root { font-family: Arial, Helvetica, sans-serif; }
@@ -24,6 +26,7 @@
     .btn.primary { background:#2b5cff; border-color:#2b5cff; }
     .btn.danger { background:#3a1e22; border-color:#5a2a32; }
     .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .btn.toggleOn{ outline:2px solid #2b5cff; }
     input[type="file"]{ display:none; }
 
     .drop {
@@ -41,7 +44,6 @@
     .thumb.active { outline:2px solid #2b5cff; }
     .thumb[draggable="true"] { user-select:none; }
     .thumb:active { cursor:grabbing; }
-
     .thumb canvas, .thumb img {
       width:72px; height:96px; object-fit:cover; border-radius:10px;
       background:#0b0d12; display:block;
@@ -59,7 +61,13 @@
     .pill {
       border:1px solid #2a3144; background:#171c29; color:#e7e7e7;
       border-radius:999px; padding:6px 10px; font-size:12px; user-select:none;
+      display:inline-flex; gap:8px; align-items:center;
     }
+    .pill input[type="range"]{ width:110px; }
+    .pill select{
+      background:#111522;color:#e7e7e7;border:1px solid #2a3144;border-radius:10px;padding:2px 6px;
+    }
+
     .viewer { flex:1; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:18px; }
     .page { background:#0b0d12; border:1px solid #242833; border-radius:16px; padding:14px; min-width:320px; }
     .canvasWrap { position:relative; display:inline-block; max-width:980px; width:100%; }
@@ -70,16 +78,15 @@
     }
     .hint { font-size:12px; color:#98a2bd; margin-top:8px; }
     .note { padding:10px 14px; font-size:12px; color:#98a2bd; border-top:1px solid #242833; }
+
+    /* SVG overlay styling */
     .selBox { fill:none; stroke:#2b5cff; stroke-width:2; stroke-dasharray:7 5; }
-.svgText { user-select:none; cursor:move; }
-
-.handle { fill:#2b5cff; stroke:rgba(0,0,0,.4); stroke-width:2; cursor:nwse-resize; }
-.handle.move { cursor:move; }
-
-    
+    .svgText { user-select:none; cursor:move; }
+    .handle { fill:#2b5cff; stroke:rgba(0,0,0,.45); stroke-width:2; }
+    .handle.corner { cursor:nwse-resize; }
+    .handle.endpoint { cursor:crosshair; }
+    .gridLine { stroke:rgba(255,255,255,.06); stroke-width:1; }
   </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-
 </head>
 
 <body>
@@ -103,9 +110,11 @@
     <div class="thumbs" id="thumbs"></div>
 
     <div class="note">
-      Partie 1 : import + aperçu + réorganisation ✅<br/>
-      Partie 2 : annotations (texte, formes, emoji, sélection) ⏭️<br/>
-      Partie 3 : flèches pro + snap + export PDF final ⏭️
+      Astuces :<br/>
+      • <b>Shift</b> = désactiver le snap temporairement<br/>
+      • <b>Ctrl/Cmd+C</b> copier, <b>Ctrl/Cmd+V</b> coller<br/>
+      • <b>Suppr</b> supprimer l’objet sélectionné<br/>
+      • <b>Double-clic</b> sur texte = éditer
     </div>
   </aside>
 
@@ -118,67 +127,69 @@
           <span class="pill" id="kindInfo">—</span>
           <span class="pill" id="orderInfo">Glisse les miniatures pour réordonner</span>
           <span class="pill">|</span>
-<button class="btn" id="toolSelectBtn">Sélection</button>
-<button class="btn" id="toolTextBtn">Texte</button>
- <button class="btn" id="toolRectBtn">Carré</button>
-<button class="btn" id="toolCircleBtn">Rond</button>
- <button class="btn" id="toolEmojiBtn">Smiley</button>
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Emoji
-  <select id="emojiPick" style="background:#111522;color:#e7e7e7;border:1px solid #2a3144;border-radius:10px;padding:2px 6px;">
-    <option value="🙂">🙂</option>
-    <option value="😊">😊</option>
-    <option value="😀">😀</option>
-    <option value="😎">😎</option>
-    <option value="😍">😍</option>
-    <option value="⚠️">⚠️</option>
-    <option value="✅">✅</option>
-    <option value="❌">❌</option>
-  </select>
-</label>
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Taille <input id="emojiSize" type="range" min="18" max="220" value="72">
-</label>
-         
-<button class="btn danger" id="delAnnotBtn" disabled>Suppr objet</button>
-       <span class="pill">|</span>
-          
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Contour <input id="strokeColor" type="color" value="#2b5cff" style="width:34px;height:22px;border:none;background:transparent;">
-</label>
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Épaisseur <input id="strokeWidth" type="range" min="1" max="30" value="6">
-</label>
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Rempl. <input id="fillColor" type="color" value="#ffffff" style="width:34px;height:22px;border:none;background:transparent;">
-</label>
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Fill
-  <select id="fillMode" style="background:#111522;color:#e7e7e7;border:1px solid #2a3144;border-radius:10px;padding:2px 6px;">
-    <option value="none">OFF</option>
-    <option value="on">ON</option>
-  </select>
-</label>
- <button class="btn" id="toolArrowBtn">Flèche</button>
 
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Style
-  <select id="arrowStyle" style="background:#111522;color:#e7e7e7;border:1px solid #2a3144;border-radius:10px;padding:2px 6px;">
-    <option value="straight">Droite</option>
-    <option value="curved">Courbée</option>
-    <option value="double">Double-pointe</option>
-  </select>
-</label>
+          <button class="btn" id="toolSelectBtn">Sélection</button>
+          <button class="btn" id="toolTextBtn">Texte</button>
+          <button class="btn" id="toolRectBtn">Carré</button>
+          <button class="btn" id="toolCircleBtn">Rond</button>
+          <button class="btn" id="toolEmojiBtn">Smiley</button>
+          <button class="btn" id="toolArrowBtn">Flèche</button>
 
-<label class="pill" style="display:flex; gap:8px; align-items:center;">
-  Snap
-  <select id="snapMode" style="background:#111522;color:#e7e7e7;border:1px solid #2a3144;border-radius:10px;padding:2px 6px;">
-    <option value="on">ON</option>
-    <option value="grid">Grille</option>
-    <option value="off">OFF</option>
-  </select>
-</label>
-  
+          <button class="btn danger" id="delAnnotBtn" disabled>Suppr objet</button>
+
+          <span class="pill">|</span>
+
+          <label class="pill">
+            Contour <input id="strokeColor" type="color" value="#2b5cff" style="width:34px;height:22px;border:none;background:transparent;">
+          </label>
+          <label class="pill">
+            Épaisseur <input id="strokeWidth" type="range" min="1" max="30" value="6">
+          </label>
+          <label class="pill">
+            Rempl. <input id="fillColor" type="color" value="#ffffff" style="width:34px;height:22px;border:none;background:transparent;">
+          </label>
+          <label class="pill">
+            Fill
+            <select id="fillMode">
+              <option value="none">OFF</option>
+              <option value="on">ON</option>
+            </select>
+          </label>
+
+          <label class="pill">
+            Emoji
+            <select id="emojiPick">
+              <option value="🙂">🙂</option>
+              <option value="😊">😊</option>
+              <option value="😀">😀</option>
+              <option value="😎">😎</option>
+              <option value="😍">😍</option>
+              <option value="⚠️">⚠️</option>
+              <option value="✅">✅</option>
+              <option value="❌">❌</option>
+            </select>
+          </label>
+          <label class="pill">
+            Taille <input id="emojiSize" type="range" min="18" max="220" value="72">
+          </label>
+
+          <label class="pill">
+            Flèche
+            <select id="arrowStyle">
+              <option value="straight">Droite</option>
+              <option value="curved">Courbée</option>
+              <option value="double">Double</option>
+            </select>
+          </label>
+
+          <label class="pill">
+            Snap
+            <select id="snapMode">
+              <option value="on">ON</option>
+              <option value="grid">Grille</option>
+              <option value="off">OFF</option>
+            </select>
+          </label>
 
         </div>
       </div>
@@ -217,1443 +228,992 @@
 
   const previewCanvas = document.getElementById('previewCanvas');
   const svgOverlay = document.getElementById('svgOverlay');
-  // --- Tools (Partie 2)
-const toolSelectBtn = document.getElementById('toolSelectBtn');
-const toolTextBtn = document.getElementById('toolTextBtn');
-const delAnnotBtn = document.getElementById('delAnnotBtn');
-const toolRectBtn = document.getElementById('toolRectBtn');
-const toolCircleBtn = document.getElementById('toolCircleBtn');
 
-const strokeColorEl = document.getElementById('strokeColor');
-const strokeWidthEl = document.getElementById('strokeWidth');
-const fillColorEl = document.getElementById('fillColor');
-const fillModeEl = document.getElementById('fillMode');
+  const toolSelectBtn = document.getElementById('toolSelectBtn');
+  const toolTextBtn = document.getElementById('toolTextBtn');
+  const toolRectBtn = document.getElementById('toolRectBtn');
+  const toolCircleBtn = document.getElementById('toolCircleBtn');
   const toolEmojiBtn = document.getElementById('toolEmojiBtn');
-const emojiPick = document.getElementById('emojiPick');
-const emojiSize = document.getElementById('emojiSize');
- const toolArrowBtn = document.getElementById('toolArrowBtn');
-const arrowStyleEl = document.getElementById('arrowStyle');
-const snapModeEl = document.getElementById('snapMode');
- 
+  const toolArrowBtn = document.getElementById('toolArrowBtn');
+  const delAnnotBtn = document.getElementById('delAnnotBtn');
 
+  const strokeColorEl = document.getElementById('strokeColor');
+  const strokeWidthEl = document.getElementById('strokeWidth');
+  const fillColorEl = document.getElementById('fillColor');
+  const fillModeEl = document.getElementById('fillMode');
 
-const TOOL = { SELECT:'select', TEXT:'text', RECT:'rect', CIRCLE:'circle', EMOJI:'emoji', ARROW:'arrow' };
-let tool = TOOL.SELECT;
+  const emojiPick = document.getElementById('emojiPick');
+  const emojiSize = document.getElementById('emojiSize');
 
-
-
-
-// Selection / drag
-let selectedId = null;
-let dragSel = null;
-let drawTemp = null;    // dessin rectangle/rond
-let dragHandle = null;  // resize handle
-
-// Each item will later have: annots: [{id, kind:'text', xN, yN, text, size, color}]
-function ensureAnnots(item){
-  if (!item.annots) item.annots = [];
-}
-
+  const arrowStyleEl = document.getElementById('arrowStyle');
+  const snapModeEl = document.getElementById('snapMode');
 
   // ---- State
-  const state = {
-    items: [],        // montage pages
-    activeIndex: -1,
-  };
+  const state = { items: [], activeIndex: -1 };
+  const pdfDocCache = new Map(); // key: sourceId -> pdfjs doc promise
   let dragFromIndex = -1;
   let renderToken = 0;
 
-  // Each item:
-  // PDF page: { type:'pdf', name, srcPdfU8, pageIndex, thumbDataUrl? }
-  // IMG:      { type:'img', name, dataUrl, thumbDataUrl? }
+  // ---- Tools / edit state
+  const TOOL = { SELECT:'select', TEXT:'text', RECT:'rect', CIRCLE:'circle', EMOJI:'emoji', ARROW:'arrow' };
+  let tool = TOOL.SELECT;
+  let selectedId = null;
+  let dragSel = null;
+  let dragHandle = null;
+  let drawTemp = null;
+  let clipboardAnnot = null;
 
   // ---- Utils
   const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
   function escapeHtml(s){
     return String(s||'').replace(/[&<>"']/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c]));
   }
-  function fileToDataUrl(file){
-    return new Promise((resolve,reject)=>{
-      const r = new FileReader();
-      r.onload = ()=>resolve(r.result);
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
+  function svgEl(name, attrs){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (const [k,v] of Object.entries(attrs||{})) el.setAttribute(k, String(v));
+    return el;
   }
-
-  function setStatus(){
-    statusEl.textContent = state.items.length
-      ? `${state.items.length} page(s) dans le montage`
-      : 'Aucun document chargé';
-
-    if (state.activeIndex >= 0){
-      pageInfoEl.textContent = `Page montage : ${state.activeIndex+1}`;
-      kindInfoEl.textContent = state.items[state.activeIndex]?.type?.toUpperCase() || '—';
-    } else {
-      pageInfoEl.textContent = '—';
-      kindInfoEl.textContent = '—';
-    }
-   exportBtn.disabled = !state.items.length;
-
-  }
-
+  function ensureAnnots(item){ if (!item.annots) item.annots = []; }
   function getActiveItem(){
     const i = state.activeIndex;
     if (i < 0 || i >= state.items.length) return null;
     return state.items[i];
   }
-
+  function setStatus(){
+    statusEl.textContent = state.items.length ? `${state.items.length} page(s) dans le montage` : 'Aucun document chargé';
+    if (state.activeIndex >= 0){
+      pageInfoEl.textContent = `Page montage : ${state.activeIndex+1}`;
+      kindInfoEl.textContent = state.items[state.activeIndex]?.type?.toUpperCase() || '—';
+    } else { pageInfoEl.textContent='—'; kindInfoEl.textContent='—'; }
+    exportBtn.disabled = !state.items.length;
+  }
   function moveItem(from,to){
     from = clamp(from,0,state.items.length-1);
     to = clamp(to,0,state.items.length-1);
     if (from === to) return;
     const [m] = state.items.splice(from,1);
     state.items.splice(to,0,m);
-
     if (state.activeIndex === from) state.activeIndex = to;
     else if (from < state.activeIndex && to >= state.activeIndex) state.activeIndex -= 1;
     else if (from > state.activeIndex && to <= state.activeIndex) state.activeIndex += 1;
   }
+  function getCanvasPos(e){
+    const rect = previewCanvas.getBoundingClientRect();
+    const scaleX = previewCanvas.width / rect.width;
+    const scaleY = previewCanvas.height / rect.height;
+    return { x:(e.clientX - rect.left)*scaleX, y:(e.clientY - rect.top)*scaleY };
+  }
+  function normToCanvasPoint(xN, yN){
+    const cw = previewCanvas.width || 1;
+    const ch = previewCanvas.height || 1;
+    return { x: xN * cw, y: (1 - yN) * ch };
+  }
+  function canvasToNormPoint(x, y){
+    const cw = previewCanvas.width || 1;
+    const ch = previewCanvas.height || 1;
+    return { xN: clamp(x / cw, 0, 1), yN: clamp(1 - (y / ch), 0, 1) };
+  }
+  function shapeBoxCanvas(a){
+    const cw = previewCanvas.width || 1;
+    const ch = previewCanvas.height || 1;
+    const x = a.xN * cw;
+    const yTop = (1 - a.yN) * ch;
+    const w = a.wN * cw;
+    const h = a.hN * ch;
+    const y = yTop - h;
+    return {x,y,w,h};
+  }
 
-  // ---- Import
-  fileInput.addEventListener('change', async (e)=>{
-    await addFiles([...(e.target.files||[])]);
-    fileInput.value = '';
+  // ---- Snap / align
+  const GRID = 10, SNAP_DIST = 10;
+  const snapValue = (v)=>Math.round(v/GRID)*GRID;
+  function collectSnapPoints(excludeId=null){
+    const item = getActiveItem(); if (!item) return [];
+    ensureAnnots(item);
+    const pts = [];
+    for (const a of item.annots){
+      if (excludeId && a.id === excludeId) continue;
+      if (a.kind === 'text' || a.kind === 'emoji') pts.push(normToCanvasPoint(a.xN, a.yN));
+      if (a.kind === 'rect' || a.kind === 'circle'){
+        const bb = shapeBoxCanvas(a);
+        pts.push({x:bb.x, y:bb.y}); pts.push({x:bb.x+bb.w, y:bb.y});
+        pts.push({x:bb.x, y:bb.y+bb.h}); pts.push({x:bb.x+bb.w, y:bb.y+bb.h});
+        pts.push({x:bb.x+bb.w/2, y:bb.y+bb.h/2});
+      }
+      if (a.kind === 'arrow'){
+        pts.push(normToCanvasPoint(a.x1N, a.y1N));
+        pts.push(normToCanvasPoint(a.x2N, a.y2N));
+        if (a.style==='curved') pts.push(normToCanvasPoint(a.cxN, a.cyN));
+      }
+    }
+    return pts;
+  }
+  function applySnap(pt, excludeId, shiftKey){
+    const mode = snapModeEl?.value || 'on';
+    if (mode === 'off' || shiftKey) return pt;
+    let x = pt.x, y = pt.y;
+    if (mode === 'on' || mode === 'grid'){ x = snapValue(x); y = snapValue(y); }
+    if (mode === 'on'){
+      const pts = collectSnapPoints(excludeId);
+      let best=null, bestD=Infinity;
+      for (const p of pts){
+        const d = Math.hypot(p.x-x, p.y-y);
+        if (d < bestD){ bestD=d; best=p; }
+      }
+      if (best && bestD <= SNAP_DIST){ x=best.x; y=best.y; }
+    }
+    return {x,y};
+  }
+
+  // ---- Arrow geometry (filled)
+  function arrowHeadParams(t){
+    return { headL: Math.max(22, t*4.2), headW: Math.max(18, t*3.2) };
+  }
+  function pathStraightArrow(x1,y1,x2,y2,t,doubleHead=false){
+    const dx=x2-x1, dy=y2-y1;
+    const len=Math.hypot(dx,dy)||1;
+    const ux=dx/len, uy=dy/len;
+    const px=-uy, py=ux;
+    const {headL, headW}=arrowHeadParams(t);
+    const t2=t/2;
+    const bx=x2-ux*headL, by=y2-uy*headL;
+    const sx=x1, sy=y1;
+    const sbx=x1+ux*headL, sby=y1+uy*headL;
+    const pts=[];
+    if (doubleHead){
+      pts.push({x:sx,y:sy});
+      pts.push({x:sbx+px*headW/2,y:sby+py*headW/2});
+      pts.push({x:sbx+px*t2,y:sby+py*t2});
+    } else pts.push({x:x1+px*t2,y:y1+py*t2});
+    pts.push({x:bx+px*t2,y:by+py*t2});
+    pts.push({x:bx+px*headW/2,y:by+py*headW/2});
+    pts.push({x:x2,y:y2});
+    pts.push({x:bx-px*headW/2,y:by-py*headW/2});
+    pts.push({x:bx-px*t2,y:by-py*t2});
+    if (doubleHead){
+      pts.push({x:sbx-px*t2,y:sby-py*t2});
+      pts.push({x:sbx-px*headW/2,y:sby-py*headW/2});
+      pts.push({x:sx,y:sy});
+      pts.push({x:sbx+px*headW/2,y:sby+py*headW/2});
+    } else pts.push({x:x1-px*t2,y:y1-py*t2});
+    let d=`M ${pts[0].x} ${pts[0].y}`;
+    for (let i=1;i<pts.length;i++) d+=` L ${pts[i].x} ${pts[i].y}`;
+    return d+' Z';
+  }
+  function qPoint(t,p0,p1,p2){ const u=1-t; return {x:u*u*p0.x+2*u*t*p1.x+t*t*p2.x, y:u*u*p0.y+2*u*t*p1.y+t*t*p2.y}; }
+  function qTangent(t,p0,p1,p2){ return {x:2*(1-t)*(p1.x-p0.x)+2*t*(p2.x-p1.x), y:2*(1-t)*(p1.y-p0.y)+2*t*(p2.y-p1.y)}; }
+  function pathCurvedArrow(x1,y1,cx,cy,x2,y2,t){
+    const p0={x:x1,y:y1}, p1={x:cx,y:cy}, p2={x:x2,y:y2};
+    const samples=18, t2=t/2;
+    const top=[], bot=[];
+    for (let i=0;i<=samples;i++){
+      const tt=i/samples;
+      const p=qPoint(tt,p0,p1,p2);
+      const tan=qTangent(tt,p0,p1,p2);
+      const L=Math.hypot(tan.x,tan.y)||1;
+      const ux=tan.x/L, uy=tan.y/L;
+      const px=-uy, py=ux;
+      top.push({x:p.x+px*t2,y:p.y+py*t2});
+      bot.push({x:p.x-px*t2,y:p.y-py*t2});
+    }
+    const tanE=qTangent(0.98,p0,p1,p2);
+    const Le=Math.hypot(tanE.x,tanE.y)||1;
+    const uxe=tanE.x/Le, uye=tanE.y/Le;
+    const pxe=-uye, pye=uxe;
+    const {headL, headW}=arrowHeadParams(t);
+    const bx=x2-uxe*headL, by=y2-uye*headL;
+    top[top.length-1]={x:bx+pxe*t2,y:by+pye*t2};
+    bot[bot.length-1]={x:bx-pxe*t2,y:by-pye*t2};
+    const headPts=[{x:bx+pxe*headW/2,y:by+pye*headW/2},{x:x2,y:y2},{x:bx-pxe*headW/2,y:by-pye*headW/2}];
+    let d=`M ${top[0].x} ${top[0].y}`;
+    for (let i=1;i<top.length;i++) d+=` L ${top[i].x} ${top[i].y}`;
+    d+=` L ${headPts[0].x} ${headPts[0].y} L ${headPts[1].x} ${headPts[1].y} L ${headPts[2].x} ${headPts[2].y}`;
+    d+=` L ${bot[bot.length-1].x} ${bot[bot.length-1].y}`;
+    for (let i=bot.length-2;i>=0;i--) d+=` L ${bot[i].x} ${bot[i].y}`;
+    return d+' Z';
+  }
+
+  // ---- Tool UI
+  function setTool(next){
+    tool = next;
+    toolSelectBtn.classList.toggle('toggleOn', tool===TOOL.SELECT);
+    toolTextBtn.classList.toggle('toggleOn', tool===TOOL.TEXT);
+    toolRectBtn.classList.toggle('toggleOn', tool===TOOL.RECT);
+    toolCircleBtn.classList.toggle('toggleOn', tool===TOOL.CIRCLE);
+    toolEmojiBtn.classList.toggle('toggleOn', tool===TOOL.EMOJI);
+    toolArrowBtn.classList.toggle('toggleOn', tool===TOOL.ARROW);
+    hintEl.textContent =
+      tool===TOOL.SELECT ? "Sélection : clique un objet, déplace-le. Poignées = ajuster. Double-clic texte = éditer."
+      : tool===TOOL.TEXT ? "Texte : clique pour placer."
+      : tool===TOOL.RECT ? "Carré : clique-glisse pour dessiner."
+      : tool===TOOL.CIRCLE ? "Rond : clique-glisse pour dessiner."
+      : tool===TOOL.EMOJI ? "Smiley : clique pour placer."
+      : "Flèche : clique-glisse. Poignées pour ajuster. Shift = pas de snap.";
+  }
+
+  toolSelectBtn.addEventListener('click', ()=>{ setTool(TOOL.SELECT); renderSvgOverlay(); });
+  toolTextBtn.addEventListener('click', ()=>{ setTool(TOOL.TEXT); selectedId=null; renderSvgOverlay(); });
+  toolRectBtn.addEventListener('click', ()=>{ setTool(TOOL.RECT); selectedId=null; renderSvgOverlay(); });
+  toolCircleBtn.addEventListener('click', ()=>{ setTool(TOOL.CIRCLE); selectedId=null; renderSvgOverlay(); });
+  toolEmojiBtn.addEventListener('click', ()=>{ setTool(TOOL.EMOJI); selectedId=null; renderSvgOverlay(); });
+  toolArrowBtn.addEventListener('click', ()=>{ setTool(TOOL.ARROW); selectedId=null; renderSvgOverlay(); });
+  delAnnotBtn.addEventListener('click', ()=>{
+    const item=getActiveItem(); if(!item||!selectedId) return;
+    ensureAnnots(item); item.annots=item.annots.filter(x=>x.id!==selectedId);
+    selectedId=null; renderSvgOverlay();
   });
 
-  dropZone.addEventListener('dragover', (e)=>{ e.preventDefault(); dropZone.style.borderColor='#2b5cff'; });
-  dropZone.addEventListener('dragleave', ()=>{ dropZone.style.borderColor='#3b4257'; });
+  // ---- Import
+  fileInput.addEventListener('change', async (e)=>{ await addFiles([...(e.target.files||[])]); fileInput.value=''; });
+  dropZone.addEventListener('dragover',(e)=>{e.preventDefault(); dropZone.style.borderColor='#2b5cff';});
+  dropZone.addEventListener('dragleave',()=>{dropZone.style.borderColor='#3b4257';});
   dropZone.addEventListener('drop', async (e)=>{
     e.preventDefault(); dropZone.style.borderColor='#3b4257';
     await addFiles([...(e.dataTransfer.files||[])]);
   });
+
+  function fileToDataUrl(file){
+    return new Promise((resolve,reject)=>{
+      const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
+    });
+  }
+  function dataUrlToImage(dataUrl){
+    return new Promise((resolve,reject)=>{
+      const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=dataUrl;
+    });
+  }
 
   async function addFiles(files){
     for (const file of files){
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       if (isPdf){
         const ab = await file.arrayBuffer();
-        const srcPdfU8 = new Uint8Array(ab); // keep original stable
-        await addPdfPages(srcPdfU8, file.name);
+        const srcPdfU8 = new Uint8Array(ab);
+        const sourceId = 'pdf_' + Math.random().toString(16).slice(2);
+        pdfDocCache.set(sourceId, pdfjsLib.getDocument({ data: srcPdfU8.slice(0) }).promise);
+        const pdf = await pdfDocCache.get(sourceId);
+        for (let i=0;i<pdf.numPages;i++){
+          state.items.push({ type:'pdf', name:file.name, sourceId, srcPdfU8, pageIndex:i, annots: [] });
+        }
       } else if (file.type.startsWith('image/')){
         const dataUrl = await fileToDataUrl(file);
-        state.items.push({ type:'img', name:file.name, dataUrl });
+        const img = await dataUrlToImage(dataUrl);
+        state.items.push({ type:'img', name:file.name, dataUrl, imgW:img.naturalWidth, imgH:img.naturalHeight, annots: [] });
       }
     }
     if (state.activeIndex === -1 && state.items.length) state.activeIndex = 0;
     await renderAll();
   }
 
-  async function addPdfPages(srcPdfU8, filename){
-    // IMPORTANT: pass a copy to PDF.js to avoid detached buffer issues
-    const loadingTask = pdfjsLib.getDocument({ data: srcPdfU8.slice(0) });
-    const pdf = await loadingTask.promise;
-    for (let i=0; i<pdf.numPages; i++){
-      state.items.push({ type:'pdf', name:filename, srcPdfU8, pageIndex:i });
-    }
-  }
-
-  // ---- Clear
   clearBtn.addEventListener('click', async ()=>{
-    state.items = [];
-    state.activeIndex = -1;
+    state.items=[]; state.activeIndex=-1;
+    selectedId=null; dragSel=null; dragHandle=null; drawTemp=null;
+    pdfDocCache.clear();
     await renderAll();
   });
 
   // ---- Thumbs
   async function renderThumbs(){
-    thumbs.innerHTML = '';
-    for (let i=0; i<state.items.length; i++){
+    thumbs.innerHTML='';
+    for (let i=0;i<state.items.length;i++){
       const item = state.items[i];
+      const card=document.createElement('div');
+      card.className='thumb'+(i===state.activeIndex?' active':'');
+      card.draggable=true;
+      card.addEventListener('click', async ()=>{ state.activeIndex=i; selectedId=null; await renderAll(); });
 
-      const card = document.createElement('div');
-      card.className = 'thumb' + (i === state.activeIndex ? ' active' : '');
-      card.draggable = true;
-
-      card.addEventListener('click', async ()=>{
-        state.activeIndex = i;
-        await renderAll();
+      card.addEventListener('dragstart',(e)=>{
+        dragFromIndex=i; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',String(i));
       });
-
-      card.addEventListener('dragstart', (e)=>{
-        dragFromIndex = i;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(i));
-      });
-      card.addEventListener('dragover', (e)=>{
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        card.style.outline = '2px solid #2b5cff';
-      });
-      card.addEventListener('dragleave', ()=>{ card.style.outline = ''; });
+      card.addEventListener('dragover',(e)=>{e.preventDefault(); e.dataTransfer.dropEffect='move'; card.style.outline='2px solid #2b5cff';});
+      card.addEventListener('dragleave',()=>{card.style.outline='';});
       card.addEventListener('drop', async (e)=>{
-        e.preventDefault();
-        card.style.outline = '';
-        const from = dragFromIndex >= 0 ? dragFromIndex : Number(e.dataTransfer.getData('text/plain'));
-        const to = i;
-        dragFromIndex = -1;
-        if (Number.isNaN(from) || from === to) return;
-        moveItem(from, to);
+        e.preventDefault(); card.style.outline='';
+        const from = dragFromIndex>=0?dragFromIndex:Number(e.dataTransfer.getData('text/plain'));
+        const to=i; dragFromIndex=-1;
+        if (Number.isNaN(from)||from===to) return;
+        moveItem(from,to);
         await renderAll();
       });
 
-      const left = document.createElement('div');
-      const right = document.createElement('div');
-      right.className = 'meta';
+      const left=document.createElement('div');
+      const right=document.createElement('div'); right.className='meta';
 
-      // thumbnail
-      if (item.type === 'img'){
-        const img = document.createElement('img');
-        img.src = item.thumbDataUrl || item.dataUrl;
-        left.appendChild(img);
-
-        right.innerHTML = `
-          <div><b>Image</b></div>
-          <div class="small">${escapeHtml(item.name||'')}</div>
-          <div class="small">Montage : ${i+1}</div>
-        `;
+      if (item.type==='img'){
+        const im=document.createElement('img'); im.src=item.dataUrl; left.appendChild(im);
+        right.innerHTML=`<div><b>Image</b></div><div class="small">${escapeHtml(item.name||'')}</div><div class="small">Montage : ${i+1}</div>`;
       } else {
-        const c = document.createElement('canvas');
-        c.width = 144; c.height = 192;
-        left.appendChild(c);
-
-        right.innerHTML = `
-          <div><b>PDF</b></div>
-          <div class="small">${escapeHtml(item.name||'')}</div>
-          <div class="small">Source : ${item.pageIndex+1} • Montage : ${i+1}</div>
-        `;
-
-        // render thumb (best-effort)
-        try {
-          await renderPdfPageToCanvas(item.srcPdfU8, item.pageIndex, c, 0.25, 144);
-        } catch (err){
-          const tctx = c.getContext('2d');
-          tctx.fillStyle = '#111'; tctx.fillRect(0,0,c.width,c.height);
-          tctx.fillStyle = '#bbb'; tctx.fillText('PDF', 10, 20);
-        }
+        const c=document.createElement('canvas'); c.width=144; c.height=192; left.appendChild(c);
+        right.innerHTML=`<div><b>PDF</b></div><div class="small">${escapeHtml(item.name||'')}</div><div class="small">Source : ${item.pageIndex+1} • Montage : ${i+1}</div>`;
+        try{
+          const pdf = await pdfDocCache.get(item.sourceId);
+          const page = await pdf.getPage(item.pageIndex+1);
+          let viewport = page.getViewport({scale:0.25});
+          const ctx=c.getContext('2d');
+          c.width=Math.floor(viewport.width); c.height=Math.floor(viewport.height);
+          await page.render({canvasContext:ctx, viewport}).promise;
+        }catch(_){}
       }
 
-      card.appendChild(left);
-      card.appendChild(right);
+      card.appendChild(left); card.appendChild(right);
       thumbs.appendChild(card);
     }
   }
 
   // ---- Preview
   async function renderPreview(){
-    const token = ++renderToken;
-    const item = getActiveItem();
-    const ctx = previewCanvas.getContext('2d');
-
-    // reset overlay size
-    svgOverlay.innerHTML = '';
+    const token=++renderToken;
+    const item=getActiveItem();
+    const ctx=previewCanvas.getContext('2d');
+    svgOverlay.innerHTML='';
 
     if (!item){
-      previewCanvas.width = 1; previewCanvas.height = 1;
-      ctx.clearRect(0,0,1,1);
-      svgOverlay.setAttribute('viewBox', '0 0 1 1');
-      hintEl.textContent = "Charge un fichier pour afficher l’aperçu.";
+      previewCanvas.width=1; previewCanvas.height=1; ctx.clearRect(0,0,1,1);
+      svgOverlay.setAttribute('viewBox','0 0 1 1');
+      hintEl.textContent="Charge un fichier pour afficher l’aperçu.";
       return;
     }
 
-    hintEl.textContent = "Chargement aperçu…";
+    hintEl.textContent="Chargement aperçu…";
 
-    if (item.type === 'img'){
-      const img = await dataUrlToImage(item.dataUrl);
-      if (token !== renderToken) return;
-
-      const maxW = 980;
-      const scale = Math.min(1, maxW / img.naturalWidth);
-      const cw = Math.floor(img.naturalWidth * scale);
-      const ch = Math.floor(img.naturalHeight * scale);
-
-      previewCanvas.width = cw; previewCanvas.height = ch;
+    if (item.type==='img'){
+      const img=await dataUrlToImage(item.dataUrl);
+      if (token!==renderToken) return;
+      const maxW=980;
+      const scale=Math.min(1, maxW/img.naturalWidth);
+      const cw=Math.floor(img.naturalWidth*scale);
+      const ch=Math.floor(img.naturalHeight*scale);
+      previewCanvas.width=cw; previewCanvas.height=ch;
       ctx.clearRect(0,0,cw,ch);
-      ctx.drawImage(img, 0, 0, cw, ch);
-
-      svgOverlay.setAttribute('viewBox', `0 0 ${cw} ${ch}`);
-      svgOverlay.setAttribute('preserveAspectRatio', 'none');
-
-      hintEl.textContent = "";
+      ctx.drawImage(img,0,0,cw,ch);
+      svgOverlay.setAttribute('viewBox',`0 0 ${cw} ${ch}`);
+      svgOverlay.setAttribute('preserveAspectRatio','none');
+      hintEl.textContent="";
       renderSvgOverlay();
-
       return;
     }
 
-    // PDF
-    const meta = await renderPdfPageToCanvas(item.srcPdfU8, item.pageIndex, previewCanvas, 1.4, 980);
-    if (token !== renderToken) return;
+    const pdf=await pdfDocCache.get(item.sourceId);
+    const page=await pdf.getPage(item.pageIndex+1);
+    let viewport=page.getViewport({scale:1.4});
+    const s=Math.min(1, 980/viewport.width);
+    viewport=page.getViewport({scale:1.4*s});
+    previewCanvas.width=Math.floor(viewport.width);
+    previewCanvas.height=Math.floor(viewport.height);
+    await page.render({canvasContext:ctx, viewport}).promise;
+    if (token!==renderToken) return;
 
-    svgOverlay.setAttribute('viewBox', `0 0 ${meta.canvasW} ${meta.canvasH}`);
-    svgOverlay.setAttribute('preserveAspectRatio', 'none');
-
-    hintEl.textContent = "";
+    svgOverlay.setAttribute('viewBox',`0 0 ${previewCanvas.width} ${previewCanvas.height}`);
+    svgOverlay.setAttribute('preserveAspectRatio','none');
+    hintEl.textContent="";
     renderSvgOverlay();
-
   }
 
-  async function renderPdfPageToCanvas(pdfU8, pageIndex, canvas, baseScale, maxW){
-    const loadingTask = pdfjsLib.getDocument({ data: pdfU8.slice(0) }); // copy = safe
-    const pdf = await loadingTask.promise;
-    const page = await pdf.getPage(pageIndex + 1);
+  function renderSvgOverlay(){
+    const item=getActiveItem();
+    const cw=previewCanvas.width||1, ch=previewCanvas.height||1;
+    svgOverlay.innerHTML='';
+    svgOverlay.setAttribute('viewBox',`0 0 ${cw} ${ch}`);
+    svgOverlay.setAttribute('preserveAspectRatio','none');
+    if (!item) return;
+    ensureAnnots(item);
 
-    let viewport = page.getViewport({ scale: baseScale });
-    const s = Math.min(1, (maxW || 980) / viewport.width);
-    viewport = page.getViewport({ scale: baseScale * s });
-
-    const ctx = canvas.getContext('2d');
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    return { canvasW: canvas.width, canvasH: canvas.height };
-  }
-
-  function dataUrlToImage(dataUrl){
-    return new Promise((resolve,reject)=>{
-      const img = new Image();
-      img.onload = ()=>resolve(img);
-      img.onerror = reject;
-      img.src = dataUrl;
-    });
-  }
-function setTool(next){
-  tool = next;
-
-  toolSelectBtn?.classList.toggle('toggleOn', tool===TOOL.SELECT);
-  toolTextBtn?.classList.toggle('toggleOn', tool===TOOL.TEXT);
-  toolRectBtn?.classList.toggle('toggleOn', tool===TOOL.RECT);
-  toolCircleBtn?.classList.toggle('toggleOn', tool===TOOL.CIRCLE);
-  toolEmojiBtn?.classList.toggle('toggleOn', tool===TOOL.EMOJI);
-  toolArrowBtn?.classList.toggle('toggleOn', tool===TOOL.ARROW);
-
-
-
-hintEl.textContent =
-  tool===TOOL.SELECT ? "Sélection : clique un objet, déplace-le. Poignées = redimensionner. Double-clic texte = éditer."
-  : tool===TOOL.TEXT ? "Texte : clique pour placer."
-  : tool===TOOL.RECT ? "Carré : clique-glisse pour dessiner."
-  : tool===TOOL.CIRCLE ? "Rond : clique-glisse pour dessiner."
-  : tool===TOOL.EMOJI ? "Smiley : clique pour placer."
-  : "Flèche : clique-glisse. Poignées pour ajuster. Shift = pas de snap.";
-
-
-}
-
-
-function getCanvasPos(e){
-  const rect = previewCanvas.getBoundingClientRect();
-  const scaleX = previewCanvas.width / rect.width;
-  const scaleY = previewCanvas.height / rect.height;
-  return { x:(e.clientX - rect.left)*scaleX, y:(e.clientY - rect.top)*scaleY };
-}
-
-function svgEl(name, attrs){
-  const el = document.createElementNS('http://www.w3.org/2000/svg', name);
-  for (const [k,v] of Object.entries(attrs||{})) el.setAttribute(k, String(v));
-  return el;
-}
-// ---- Arrow geometry (stylée, remplie, jolie)
-const GRID = 10;
-const SNAP_DIST = 10;
-
-function snapValue(v){ return Math.round(v/GRID)*GRID; }
-
-function collectSnapPoints(excludeId=null){
-  const item = getActiveItem();
-  if (!item) return [];
-  ensureAnnots(item);
-  const pts = [];
-  for (const a of item.annots){
-    if (excludeId && a.id === excludeId) continue;
-
-    if (a.kind === 'text' || a.kind === 'emoji'){
-      pts.push(normToCanvasPoint(a.xN, a.yN));
-    }
-    if (a.kind === 'rect' || a.kind === 'circle'){
-      // corners
-      const bb = shapeBoxCanvas(a);
-      pts.push({x:bb.x, y:bb.y});
-      pts.push({x:bb.x+bb.w, y:bb.y});
-      pts.push({x:bb.x, y:bb.y+bb.h});
-      pts.push({x:bb.x+bb.w, y:bb.y+bb.h});
-    }
-    if (a.kind === 'arrow'){
-      pts.push(normToCanvasPoint(a.x1N, a.y1N));
-      pts.push(normToCanvasPoint(a.x2N, a.y2N));
-      if (a.style==='curved') pts.push(normToCanvasPoint(a.cxN, a.cyN));
-    }
-  }
-  return pts;
-}
-
-function applySnap(pt, excludeId, shiftKey){
-  const mode = snapModeEl?.value || 'on';
-  if (mode === 'off' || shiftKey) return pt;
-
-  let x = pt.x, y = pt.y;
-
-  if (mode === 'on' || mode === 'grid'){
-    x = snapValue(x); y = snapValue(y);
-  }
-
-  if (mode === 'on'){
-    const pts = collectSnapPoints(excludeId);
-    let best = null, bestD = Infinity;
-    for (const p of pts){
-      const d = Math.hypot(p.x-x, p.y-y);
-      if (d < bestD){ bestD = d; best = p; }
-    }
-    if (best && bestD <= SNAP_DIST){ x = best.x; y = best.y; }
-  }
-
-  return {x,y};
-}
-
-// Convert normalized (xN,yN where yN is bottom-based) <-> canvas coords
-function normToCanvasPoint(xN, yN){
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
-  return { x: xN * cw, y: (1 - yN) * ch };
-}
-function canvasToNormPoint(x, y){
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
-  return {
-    xN: clamp(x / cw, 0, 1),
-    yN: clamp(1 - (y / ch), 0, 1)
-  };
-}
-
-// Shape bbox in canvas coords
-function shapeBoxCanvas(a){
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
-  const x = a.xN * cw;
-  const yTop = (1 - a.yN) * ch;
-  const w = a.wN * cw;
-  const h = a.hN * ch;
-  const y = yTop - h;
-  return {x,y,w,h};
-}
-
-// Pretty arrow path (straight/double)
-function arrowHeadParams(t){
-  const headL = Math.max(22, t * 4.2);
-  const headW = Math.max(18, t * 3.2);
-  return { headL, headW };
-}
-
-function pathStraightArrow(x1,y1,x2,y2,t, doubleHead=false){
-  const dx = x2-x1, dy = y2-y1;
-  const len = Math.hypot(dx,dy) || 1;
-  const ux = dx/len, uy = dy/len;
-  const px = -uy, py = ux;
-
-  const { headL, headW } = arrowHeadParams(t);
-  const t2 = t/2;
-
-  const bx = x2 - ux*headL;
-  const by = y2 - uy*headL;
-
-  // start head if double
-  const sx = x1, sy = y1;
-  const sbx = x1 + ux*headL;
-  const sby = y1 + uy*headL;
-
-  const pts = [];
-
-  if (doubleHead){
-    pts.push({x:sx, y:sy});
-    pts.push({x:sbx + px*headW/2, y:sby + py*headW/2});
-    pts.push({x:sbx + px*t2, y:sby + py*t2});
-  } else {
-    pts.push({x:x1 + px*t2, y:y1 + py*t2});
-  }
-
-  pts.push({x:bx + px*t2, y:by + py*t2});
-  pts.push({x:bx + px*headW/2, y:by + py*headW/2});
-  pts.push({x:x2, y:y2});
-  pts.push({x:bx - px*headW/2, y:by - py*headW/2});
-  pts.push({x:bx - px*t2, y:by - py*t2});
-
-  if (doubleHead){
-    pts.push({x:sbx - px*t2, y:sby - py*t2});
-    pts.push({x:sbx - px*headW/2, y:sby - py*headW/2});
-    pts.push({x:sx, y:sy});
-    pts.push({x:sbx + px*headW/2, y:sby + py*headW/2});
-  } else {
-    pts.push({x:x1 - px*t2, y:y1 - py*t2});
-  }
-
-  let d = `M ${pts[0].x} ${pts[0].y}`;
-  for (let i=1;i<pts.length;i++) d += ` L ${pts[i].x} ${pts[i].y}`;
-  return d + ' Z';
-}
-
-// Quadratic Bezier sampling for curved
-function qPoint(t, p0, p1, p2){
-  const u=1-t;
-  return { x:u*u*p0.x + 2*u*t*p1.x + t*t*p2.x,
-           y:u*u*p0.y + 2*u*t*p1.y + t*t*p2.y };
-}
-function qTangent(t, p0, p1, p2){
-  return { x:2*(1-t)*(p1.x-p0.x) + 2*t*(p2.x-p1.x),
-           y:2*(1-t)*(p1.y-p0.y) + 2*t*(p2.y-p1.y) };
-}
-
-function pathCurvedArrow(x1,y1,cx,cy,x2,y2,t){
-  const p0={x:x1,y:y1}, p1={x:cx,y:cy}, p2={x:x2,y:y2};
-  const samples = 18;
-  const t2 = t/2;
-  const top=[], bot=[];
-
-  for (let i=0;i<=samples;i++){
-    const tt=i/samples;
-    const p=qPoint(tt,p0,p1,p2);
-    const tan=qTangent(tt,p0,p1,p2);
-    const L=Math.hypot(tan.x,tan.y) || 1;
-    const ux=tan.x/L, uy=tan.y/L;
-    const px=-uy, py=ux;
-    top.push({x:p.x + px*t2, y:p.y + py*t2});
-    bot.push({x:p.x - px*t2, y:p.y - py*t2});
-  }
-
-  // head at end
-  const tanE=qTangent(0.98,p0,p1,p2);
-  const Le=Math.hypot(tanE.x,tanE.y) || 1;
-  const uxe=tanE.x/Le, uye=tanE.y/Le;
-  const pxe=-uye, pye=uxe;
-
-  const { headL, headW } = arrowHeadParams(t);
-  const bx = x2 - uxe*headL;
-  const by = y2 - uye*headL;
-
-  top[top.length-1] = {x:bx + pxe*t2, y:by + pye*t2};
-  bot[bot.length-1] = {x:bx - pxe*t2, y:by - pye*t2};
-
-  const headPts = [
-    {x:bx + pxe*headW/2, y:by + pye*headW/2},
-    {x:x2, y:y2},
-    {x:bx - pxe*headW/2, y:by - pye*headW/2}
-  ];
-
-  let d = `M ${top[0].x} ${top[0].y}`;
-  for (let i=1;i<top.length;i++) d += ` L ${top[i].x} ${top[i].y}`;
-  d += ` L ${headPts[0].x} ${headPts[0].y}`;
-  d += ` L ${headPts[1].x} ${headPts[1].y}`;
-  d += ` L ${headPts[2].x} ${headPts[2].y}`;
-  d += ` L ${bot[bot.length-1].x} ${bot[bot.length-1].y}`;
-  for (let i=bot.length-2;i>=0;i--) d += ` L ${bot[i].x} ${bot[i].y}`;
-  return d + ' Z';
-}
-
-function renderSvgOverlay(){
-  const item = getActiveItem();
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
-
-  svgOverlay.innerHTML = '';
-  svgOverlay.setAttribute('viewBox', `0 0 ${cw} ${ch}`);
-  svgOverlay.setAttribute('preserveAspectRatio', 'none');
-
-  if (!item) return;
-  ensureAnnots(item);
-
-  for (const a of item.annots){
-
-    // ---- TEXT
-    if (a.kind === 'text'){
-      const x = a.xN * cw;
-      const y = (1 - a.yN) * ch;
-
-      const g = svgEl('g', { 'data-id': a.id });
-      const t = svgEl('text', {
-        x, y,
-        fill: a.color || '#ffffff',
-        'font-size': a.size || 24,
-        'font-family': 'Arial, Helvetica, sans-serif',
-        class: 'svgText'
-      });
-      t.textContent = a.text || 'Texte';
-      g.appendChild(t);
-
-      if (a.id === selectedId){
-        const w = Math.max(60, (t.textContent.length||1) * (a.size||24) * 0.6);
-        const h = (a.size||24) + 14;
-        g.appendChild(svgEl('rect', {
-          x: x-6, y: y-(a.size||24)-6,
-          width: w, height: h,
-          class: 'selBox'
-        }));
-      }
-
-      svgOverlay.appendChild(g);
-      continue;
+    if ((snapModeEl.value||'on')==='grid'){
+      for (let x=0;x<=cw;x+=GRID) svgOverlay.appendChild(svgEl('line',{x1:x,y1:0,x2:x,y2:ch,class:'gridLine'}));
+      for (let y=0;y<=ch;y+=GRID) svgOverlay.appendChild(svgEl('line',{x1:0,y1:y,x2:cw,y2:y,class:'gridLine'}));
     }
 
-    // ---- EMOJI
-    if (a.kind === 'emoji'){
-      const x = a.xN * cw;
-      const y = (1 - a.yN) * ch;
-
-      const g = svgEl('g', { 'data-id': a.id });
-      const t = svgEl('text', {
-        x, y,
-        fill: '#ffffff',
-        'font-size': a.size || 72,
-        'font-family': 'Arial, Helvetica, sans-serif',
-        class: 'svgText'
-      });
-      t.textContent = a.emoji || '🙂';
-      g.appendChild(t);
-
-      if (a.id === selectedId){
-        const size = a.size || 72;
-        g.appendChild(svgEl('rect', {
-          x: x - size*0.55, y: y - size*0.95,
-          width: size*1.1, height: size*1.1,
-          class: 'selBox'
-        }));
-      }
-
-      svgOverlay.appendChild(g);
-      continue;
-    }
-
-    // ---- SHAPES
-    if (a.kind === 'rect' || a.kind === 'circle'){
-      const x = a.xN * cw;
-      const yTop = (1 - a.yN) * ch;
-      const w = a.wN * cw;
-      const h = a.hN * ch;
-      const y = yTop - h;
-
-      const g = svgEl('g', { 'data-id': a.id });
-      const stroke = a.stroke || '#2b5cff';
-      const sw = a.strokeW || 6;
-      const fill = a.fill ? a.fill : 'none';
-
-      if (a.kind === 'rect'){
-        g.appendChild(svgEl('rect', {
-          x, y, width:w, height:h, rx:10, ry:10,
-          stroke, 'stroke-width': sw, fill
-        }));
-      } else {
-        g.appendChild(svgEl('ellipse', {
-          cx: x + w/2, cy: y + h/2, rx: w/2, ry: h/2,
-          stroke, 'stroke-width': sw, fill
-        }));
-      }
-
-      if (a.id === selectedId){
-        g.appendChild(svgEl('rect', { x, y, width:w, height:h, class:'selBox' }));
-        const handles = [
-          {hx:x, hy:y, name:'tl'},
-          {hx:x+w, hy:y, name:'tr'},
-          {hx:x, hy:y+h, name:'bl'},
-          {hx:x+w, hy:y+h, name:'br'},
-        ];
-        for (const hh of handles){
-          g.appendChild(svgEl('circle', {
-            cx: hh.hx, cy: hh.hy, r: 7,
-            class:'handle',
-            'data-handle': hh.name
-          }));
+    for (const a of item.annots){
+      if (a.kind==='text'){
+        const x=a.xN*cw, y=(1-a.yN)*ch;
+        const g=svgEl('g',{'data-id':a.id});
+        const t=svgEl('text',{x,y,fill:a.color||'#fff','font-size':a.size||24,'font-family':'Arial',class:'svgText'});
+        t.textContent=a.text||'Texte';
+        g.appendChild(t);
+        if (a.id===selectedId){
+          const w=Math.max(60,(t.textContent.length||1)*(a.size||24)*0.6);
+          const h=(a.size||24)+14;
+          g.appendChild(svgEl('rect',{x:x-6,y:y-(a.size||24)-6,width:w,height:h,class:'selBox'}));
         }
+        svgOverlay.appendChild(g);
+        continue;
       }
 
-      svgOverlay.appendChild(g);
-      continue;
-    }
-
-    // ---- ARROW
-    if (a.kind === 'arrow'){
-      const g = svgEl('g', { 'data-id': a.id });
-      const p1 = normToCanvasPoint(a.x1N, a.y1N);
-      const p2 = normToCanvasPoint(a.x2N, a.y2N);
-
-      const t = a.thickness || 6;
-      const fill = a.color || '#2b5cff';
-
-      let d = '';
-      if (a.style === 'curved'){
-        const pc = normToCanvasPoint(a.cxN, a.cyN);
-        d = pathCurvedArrow(p1.x,p1.y, pc.x,pc.y, p2.x,p2.y, t);
-      } else if (a.style === 'double'){
-        d = pathStraightArrow(p1.x,p1.y, p2.x,p2.y, t, true);
-      } else {
-        d = pathStraightArrow(p1.x,p1.y, p2.x,p2.y, t, false);
+      if (a.kind==='emoji'){
+        const x=a.xN*cw, y=(1-a.yN)*ch;
+        const g=svgEl('g',{'data-id':a.id});
+        const t=svgEl('text',{x,y,fill:'#fff','font-size':a.size||72,'font-family':'Arial',class:'svgText'});
+        t.textContent=a.emoji||'🙂';
+        g.appendChild(t);
+        if (a.id===selectedId){
+          const size=a.size||72;
+          g.appendChild(svgEl('rect',{x:x-size*0.55,y:y-size*0.95,width:size*1.1,height:size*1.1,class:'selBox'}));
+        }
+        svgOverlay.appendChild(g);
+        continue;
       }
 
-      g.appendChild(svgEl('path', { d, fill }));
+      if (a.kind==='rect' || a.kind==='circle'){
+        const x=a.xN*cw;
+        const yTop=(1-a.yN)*ch;
+        const w=a.wN*cw, h=a.hN*ch;
+        const y=yTop-h;
+        const g=svgEl('g',{'data-id':a.id});
+        const stroke=a.stroke||'#2b5cff', sw=a.strokeW||6;
+        const fill=a.fill?a.fill:'none';
+        if (a.kind==='rect'){
+          g.appendChild(svgEl('rect',{x,y,width:w,height:h,rx:10,ry:10,stroke,'stroke-width':sw,fill}));
+        } else {
+          g.appendChild(svgEl('ellipse',{cx:x+w/2,cy:y+h/2,rx:w/2,ry:h/2,stroke,'stroke-width':sw,fill}));
+        }
+        if (a.id===selectedId){
+          g.appendChild(svgEl('rect',{x,y,width:w,height:h,class:'selBox'}));
+          const hs=[{hx:x,hy:y,name:'tl'},{hx:x+w,hy:y,name:'tr'},{hx:x,hy:y+h,name:'bl'},{hx:x+w,hy:y+h,name:'br'}];
+          for (const hh of hs){
+            g.appendChild(svgEl('circle',{cx:hh.hx,cy:hh.hy,r:7,class:'handle corner','data-handle':hh.name}));
+          }
+        }
+        svgOverlay.appendChild(g);
+        continue;
+      }
 
-      if (a.id === selectedId){
-        g.appendChild(svgEl('circle', { cx:p1.x, cy:p1.y, r:7, class:'handle', 'data-handle':'ap1' }));
-        g.appendChild(svgEl('circle', { cx:p2.x, cy:p2.y, r:7, class:'handle', 'data-handle':'ap2' }));
+      if (a.kind==='arrow'){
+        const g=svgEl('g',{'data-id':a.id});
+        const p1=normToCanvasPoint(a.x1N,a.y1N);
+        const p2=normToCanvasPoint(a.x2N,a.y2N);
+        const t=a.thickness||6, fill=a.color||'#2b5cff';
+        let d='';
         if (a.style==='curved'){
-          const pc = normToCanvasPoint(a.cxN, a.cyN);
-          g.appendChild(svgEl('circle', { cx:pc.x, cy:pc.y, r:7, class:'handle', 'data-handle':'ac' }));
+          const pc=normToCanvasPoint(a.cxN,a.cyN);
+          d=pathCurvedArrow(p1.x,p1.y,pc.x,pc.y,p2.x,p2.y,t);
+        } else if (a.style==='double'){
+          d=pathStraightArrow(p1.x,p1.y,p2.x,p2.y,t,true);
+        } else {
+          d=pathStraightArrow(p1.x,p1.y,p2.x,p2.y,t,false);
+        }
+        g.appendChild(svgEl('path',{d,fill}));
+        if (a.id===selectedId){
+          g.appendChild(svgEl('circle',{cx:p1.x,cy:p1.y,r:7,class:'handle endpoint','data-handle':'ap1'}));
+          g.appendChild(svgEl('circle',{cx:p2.x,cy:p2.y,r:7,class:'handle endpoint','data-handle':'ap2'}));
+          if (a.style==='curved'){
+            const pc=normToCanvasPoint(a.cxN,a.cyN);
+            g.appendChild(svgEl('circle',{cx:pc.x,cy:pc.y,r:7,class:'handle endpoint','data-handle':'ac'}));
+          }
+        }
+        svgOverlay.appendChild(g);
+        continue;
+      }
+    }
+
+    delAnnotBtn.disabled = !selectedId;
+  }
+
+  function hitAnnotId(e){
+    const g = e.target.closest('g[data-id]');
+    return g ? g.getAttribute('data-id') : null;
+  }
+
+  // ---- Pointer interactions
+  svgOverlay.addEventListener('pointerdown', (e)=>{
+    const item=getActiveItem(); if(!item) return;
+    ensureAnnots(item);
+    const pos=getCanvasPos(e);
+
+    const handle = e.target && e.target.getAttribute && e.target.getAttribute('data-handle');
+
+    // Arrow handles first
+    if (tool===TOOL.SELECT && handle && (handle==='ap1'||handle==='ap2'||handle==='ac')){
+      const id=hitAnnotId(e); if(!id) return;
+      selectedId=id;
+      const a=item.annots.find(x=>x.id===id);
+      if(!a||a.kind!=='arrow') return;
+      dragHandle={id, handle, start:pos, a0: JSON.parse(JSON.stringify(a))};
+      svgOverlay.setPointerCapture(e.pointerId);
+      renderSvgOverlay(); e.preventDefault(); return;
+    }
+
+    // Shape handles
+    if (tool===TOOL.SELECT && handle && (handle==='tl'||handle==='tr'||handle==='bl'||handle==='br')){
+      const id=hitAnnotId(e); if(!id) return;
+      selectedId=id;
+      const a=item.annots.find(x=>x.id===id);
+      if(!a||(a.kind!=='rect'&&a.kind!=='circle')) return;
+      dragHandle={id, handle, start:pos, a0: {...a}};
+      svgOverlay.setPointerCapture(e.pointerId);
+      renderSvgOverlay(); e.preventDefault(); return;
+    }
+
+    // Create TEXT
+    if (tool===TOOL.TEXT){
+      const p=applySnap(pos,null,e.shiftKey);
+      const n=canvasToNormPoint(p.x,p.y);
+      const a={id:'a_'+Date.now()+'_'+Math.random().toString(16).slice(2), kind:'text', xN:n.xN,yN:n.yN, text:'Texte', size:26, color:'#ffffff'};
+      item.annots.push(a); selectedId=a.id; setTool(TOOL.SELECT); renderSvgOverlay(); return;
+    }
+
+    // Create EMOJI
+    if (tool===TOOL.EMOJI){
+      const p=applySnap(pos,null,e.shiftKey);
+      const n=canvasToNormPoint(p.x,p.y);
+      const a={id:'a_'+Date.now()+'_'+Math.random().toString(16).slice(2), kind:'emoji', xN:n.xN,yN:n.yN, emoji:emojiPick.value||'🙂', size:parseInt(emojiSize.value||'72',10)};
+      item.annots.push(a); selectedId=a.id; setTool(TOOL.SELECT); renderSvgOverlay(); return;
+    }
+
+    // Start ARROW
+    if (tool===TOOL.ARROW){
+      const base=applySnap(pos,null,e.shiftKey);
+      const color=strokeColorEl.value||'#2b5cff';
+      const thickness=parseInt(strokeWidthEl.value||'6',10);
+      const style=arrowStyleEl.value||'straight';
+      drawTemp={tool:TOOL.ARROW, x1:base.x,y1:base.y,x2:base.x,y2:base.y, style, color, thickness};
+      if (style==='curved'){ drawTemp.cx=base.x; drawTemp.cy=base.y-80; }
+      svgOverlay.setPointerCapture(e.pointerId); e.preventDefault(); return;
+    }
+
+    // Start RECT/CIRCLE
+    if (tool===TOOL.RECT || tool===TOOL.CIRCLE){
+      drawTemp={tool, x1:pos.x,y1:pos.y,x2:pos.x,y2:pos.y};
+      svgOverlay.setPointerCapture(e.pointerId); e.preventDefault(); return;
+    }
+
+    // SELECT pick/move
+    const id=hitAnnotId(e);
+    selectedId=id;
+    renderSvgOverlay();
+    if(!id) return;
+    const a=item.annots.find(x=>x.id===id);
+    if(!a) return;
+    dragSel={id, startX:pos.x, startY:pos.y, a0: JSON.parse(JSON.stringify(a))};
+    svgOverlay.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+
+  svgOverlay.addEventListener('pointermove', (e)=>{
+    const pos=getCanvasPos(e);
+
+    // drag handles
+    if (dragHandle){
+      const item=getActiveItem(); if(!item) return;
+      ensureAnnots(item);
+      const a=item.annots.find(x=>x.id===dragHandle.id);
+      if(!a) return;
+
+      // arrow
+      if (a.kind==='arrow'){
+        const snapped=applySnap(pos, dragHandle.id, e.shiftKey);
+        const n=canvasToNormPoint(snapped.x,snapped.y);
+        if (dragHandle.handle==='ap1'){ a.x1N=n.xN; a.y1N=n.yN; }
+        else if (dragHandle.handle==='ap2'){ a.x2N=n.xN; a.y2N=n.yN; }
+        else if (dragHandle.handle==='ac'){ a.cxN=n.xN; a.cyN=n.yN; }
+        renderSvgOverlay(); e.preventDefault(); return;
+      }
+
+      // shape
+      if (a.kind==='rect'||a.kind==='circle'){
+        const cw=previewCanvas.width||1, ch=previewCanvas.height||1;
+        const x0=dragHandle.a0.xN*cw;
+        const yTop0=(1-dragHandle.a0.yN)*ch;
+        const w0=dragHandle.a0.wN*cw;
+        const h0=dragHandle.a0.hN*ch;
+        const y0=yTop0-h0;
+        let x=x0,y=y0,w=w0,h=h0;
+        const hx=pos.x, hy=pos.y, minSize=8;
+        if (dragHandle.handle==='tl'){ w=(x0+w0)-hx; h=(y0+h0)-hy; x=hx; y=hy; }
+        else if (dragHandle.handle==='tr'){ w=hx-x0; h=(y0+h0)-hy; x=x0; y=hy; }
+        else if (dragHandle.handle==='bl'){ w=(x0+w0)-hx; h=hy-y0; x=hx; y=y0; }
+        else if (dragHandle.handle==='br'){ w=hx-x0; h=hy-y0; x=x0; y=y0; }
+        w=Math.max(minSize,w); h=Math.max(minSize,h);
+        a.xN=clamp(x/cw,0,1);
+        const yTop=y+h;
+        a.yN=clamp(1-(yTop/ch),0,1);
+        a.wN=clamp(w/cw,0.001,1);
+        a.hN=clamp(h/ch,0.001,1);
+        renderSvgOverlay(); e.preventDefault(); return;
+      }
+    }
+
+    // drawing temp
+    if (drawTemp){
+      if (drawTemp.tool===TOOL.ARROW){
+        const p=applySnap(pos,null,e.shiftKey);
+        drawTemp.x2=p.x; drawTemp.y2=p.y;
+        if (drawTemp.style==='curved'){
+          const mx=(drawTemp.x1+drawTemp.x2)/2, my=(drawTemp.y1+drawTemp.y2)/2;
+          const dx=drawTemp.x2-drawTemp.x1, dy=drawTemp.y2-drawTemp.y1;
+          const L=Math.hypot(dx,dy)||1;
+          const nx=-dy/L, ny=dx/L;
+          const bump=90;
+          drawTemp.cx=mx+nx*bump; drawTemp.cy=my+ny*bump;
+        }
+        renderSvgOverlay();
+        const t=drawTemp.thickness||6, fill=drawTemp.color||'#2b5cff';
+        let d='';
+        if (drawTemp.style==='curved') d=pathCurvedArrow(drawTemp.x1,drawTemp.y1,drawTemp.cx,drawTemp.cy,drawTemp.x2,drawTemp.y2,t);
+        else if (drawTemp.style==='double') d=pathStraightArrow(drawTemp.x1,drawTemp.y1,drawTemp.x2,drawTemp.y2,t,true);
+        else d=pathStraightArrow(drawTemp.x1,drawTemp.y1,drawTemp.x2,drawTemp.y2,t,false);
+        svgOverlay.appendChild(svgEl('path',{d,fill,opacity:'0.85'}));
+        e.preventDefault(); return;
+      }
+
+      drawTemp.x2=pos.x; drawTemp.y2=pos.y;
+      renderSvgOverlay();
+      const x=Math.min(drawTemp.x1,drawTemp.x2), y=Math.min(drawTemp.y1,drawTemp.y2);
+      const w=Math.max(2,Math.abs(drawTemp.x2-drawTemp.x1)), h=Math.max(2,Math.abs(drawTemp.y2-drawTemp.y1));
+      const stroke=strokeColorEl.value||'#2b5cff';
+      const sw=parseInt(strokeWidthEl.value||'6',10);
+      const fill=(fillModeEl.value==='on')?(fillColorEl.value||'#ffffff'):'none';
+      const g=svgEl('g',{});
+      if (drawTemp.tool===TOOL.RECT) g.appendChild(svgEl('rect',{x,y,width:w,height:h,rx:10,ry:10,stroke,'stroke-width':sw,fill,opacity:0.8}));
+      else g.appendChild(svgEl('ellipse',{cx:x+w/2,cy:y+h/2,rx:w/2,ry:h/2,stroke,'stroke-width':sw,fill,opacity:0.8}));
+      svgOverlay.appendChild(g);
+      e.preventDefault(); return;
+    }
+
+    // move selection
+    if (!dragSel) return;
+    const item=getActiveItem(); if(!item) return;
+    ensureAnnots(item);
+    const a=item.annots.find(x=>x.id===dragSel.id); if(!a) return;
+    const cw=previewCanvas.width||1, ch=previewCanvas.height||1;
+    const dx=pos.x-dragSel.startX, dy=pos.y-dragSel.startY;
+
+    if (a.kind==='text'||a.kind==='emoji'){
+      const x0=dragSel.a0.xN*cw, y0=(1-dragSel.a0.yN)*ch;
+      const p=applySnap({x:x0+dx,y:y0+dy}, dragSel.id, e.shiftKey);
+      const n=canvasToNormPoint(p.x,p.y);
+      a.xN=n.xN; a.yN=n.yN;
+      renderSvgOverlay(); e.preventDefault(); return;
+    }
+
+    if (a.kind==='rect'||a.kind==='circle'){
+      const x0=dragSel.a0.xN*cw;
+      const yTop0=(1-dragSel.a0.yN)*ch;
+      const y0=yTop0-(dragSel.a0.hN*ch);
+      const p=applySnap({x:x0+dx,y:y0+dy}, dragSel.id, e.shiftKey);
+      a.xN=clamp(p.x/cw,0,1);
+      const yTop=p.y+(dragSel.a0.hN*ch);
+      a.yN=clamp(1-(yTop/ch),0,1);
+      renderSvgOverlay(); e.preventDefault(); return;
+    }
+
+    if (a.kind==='arrow'){
+      const p10=normToCanvasPoint(dragSel.a0.x1N,dragSel.a0.y1N);
+      const p20=normToCanvasPoint(dragSel.a0.x2N,dragSel.a0.y2N);
+      const p1=applySnap({x:p10.x+dx,y:p10.y+dy}, dragSel.id, e.shiftKey);
+      const p2=applySnap({x:p20.x+dx,y:p20.y+dy}, dragSel.id, e.shiftKey);
+      const n1=canvasToNormPoint(p1.x,p1.y), n2=canvasToNormPoint(p2.x,p2.y);
+      a.x1N=n1.xN; a.y1N=n1.yN; a.x2N=n2.xN; a.y2N=n2.yN;
+      if (a.style==='curved'){
+        const pc0=normToCanvasPoint(dragSel.a0.cxN,dragSel.a0.cyN);
+        const pc=applySnap({x:pc0.x+dx,y:pc0.y+dy}, dragSel.id, e.shiftKey);
+        const nc=canvasToNormPoint(pc.x,pc.y);
+        a.cxN=nc.xN; a.cyN=nc.yN;
+      }
+      renderSvgOverlay(); e.preventDefault(); return;
+    }
+  });
+
+  svgOverlay.addEventListener('pointerup', ()=>{
+    const item=getActiveItem();
+    if (!item){ dragSel=null; dragHandle=null; drawTemp=null; return; }
+    ensureAnnots(item);
+
+    if (drawTemp && drawTemp.tool===TOOL.ARROW){
+      if (Math.hypot(drawTemp.x2-drawTemp.x1, drawTemp.y2-drawTemp.y1) < 8){
+        drawTemp=null; renderSvgOverlay(); return;
+      }
+      const p1N=canvasToNormPoint(drawTemp.x1,drawTemp.y1);
+      const p2N=canvasToNormPoint(drawTemp.x2,drawTemp.y2);
+      const a={
+        id:'a_'+Date.now()+'_'+Math.random().toString(16).slice(2),
+        kind:'arrow', style:drawTemp.style, color:drawTemp.color, thickness:drawTemp.thickness,
+        x1N:p1N.xN, y1N:p1N.yN, x2N:p2N.xN, y2N:p2N.yN
+      };
+      if (drawTemp.style==='curved'){
+        const pcN=canvasToNormPoint(drawTemp.cx,drawTemp.cy);
+        a.cxN=pcN.xN; a.cyN=pcN.yN;
+      }
+      item.annots.push(a);
+      selectedId=a.id;
+      drawTemp=null; setTool(TOOL.SELECT); renderSvgOverlay(); return;
+    }
+
+    if (drawTemp && (drawTemp.tool===TOOL.RECT || drawTemp.tool===TOOL.CIRCLE)){
+      const cw=previewCanvas.width||1, ch=previewCanvas.height||1;
+      const x=Math.min(drawTemp.x1,drawTemp.x2), y=Math.min(drawTemp.y1,drawTemp.y2);
+      const w=Math.max(2,Math.abs(drawTemp.x2-drawTemp.x1)), h=Math.max(2,Math.abs(drawTemp.y2-drawTemp.y1));
+      const xN=clamp(x/cw,0,1);
+      const yTop=y+h;
+      const yN=clamp(1-(yTop/ch),0,1);
+      const wN=clamp(w/cw,0.001,1);
+      const hN=clamp(h/ch,0.001,1);
+      const stroke=strokeColorEl.value||'#2b5cff';
+      const strokeW=parseInt(strokeWidthEl.value||'6',10);
+      const fill=(fillModeEl.value==='on')?(fillColorEl.value||'#ffffff'):null;
+      const a={id:'a_'+Date.now()+'_'+Math.random().toString(16).slice(2),
+        kind:(drawTemp.tool===TOOL.RECT?'rect':'circle'),
+        xN,yN,wN,hN, stroke, strokeW, fill
+      };
+      item.annots.push(a);
+      selectedId=a.id;
+      drawTemp=null; setTool(TOOL.SELECT); renderSvgOverlay(); return;
+    }
+
+    dragSel=null; dragHandle=null;
+  });
+
+  svgOverlay.addEventListener('dblclick',(e)=>{
+    const item=getActiveItem(); if(!item) return;
+    ensureAnnots(item);
+    const id=hitAnnotId(e); if(!id) return;
+    const a=item.annots.find(x=>x.id===id); if(!a) return;
+    if (a.kind==='text'){
+      const next=prompt('Modifier le texte :', a.text||'');
+      if (next===null) return;
+      a.text=next; selectedId=id; renderSvgOverlay();
+    }
+  });
+
+  // ---- Copy/Paste/Delete
+  function getSelectedAnnot(){
+    const item=getActiveItem(); if(!item||!selectedId) return null;
+    ensureAnnots(item);
+    return item.annots.find(x=>x.id===selectedId) || null;
+  }
+  window.addEventListener('keydown',(e)=>{
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+
+    if ((e.key==='Delete'||e.key==='Backspace') && selectedId){
+      e.preventDefault();
+      const item=getActiveItem(); if(!item) return;
+      ensureAnnots(item);
+      item.annots=item.annots.filter(x=>x.id!==selectedId);
+      selectedId=null;
+      renderSvgOverlay();
+      return;
+    }
+
+    if (mod && e.key.toLowerCase()==='c'){
+      const a=getSelectedAnnot(); if(!a) return;
+      e.preventDefault(); clipboardAnnot=JSON.parse(JSON.stringify(a));
+      return;
+    }
+
+    if (mod && e.key.toLowerCase()==='v'){
+      const item=getActiveItem(); if(!item||!clipboardAnnot) return;
+      e.preventDefault(); ensureAnnots(item);
+      const a=JSON.parse(JSON.stringify(clipboardAnnot));
+      a.id='a_'+Date.now()+'_'+Math.random().toString(16).slice(2);
+      const bump=0.02;
+      if (a.kind==='text'||a.kind==='emoji'||a.kind==='rect'||a.kind==='circle'){
+        a.xN=clamp((a.xN||0)+bump,0,1);
+        a.yN=clamp((a.yN||0)+bump,0,1);
+      }
+      if (a.kind==='arrow'){
+        a.x1N=clamp((a.x1N||0)+bump,0,1); a.y1N=clamp((a.y1N||0)+bump,0,1);
+        a.x2N=clamp((a.x2N||0)+bump,0,1); a.y2N=clamp((a.y2N||0)+bump,0,1);
+        if (a.style==='curved'){ a.cxN=clamp((a.cxN||0)+bump,0,1); a.cyN=clamp((a.cyN||0)+bump,0,1); }
+      }
+      item.annots.push(a); selectedId=a.id; renderSvgOverlay();
+    }
+  });
+
+  // ---- Style controls -> selection
+  function updateSelected(mutator){
+    const item=getActiveItem(); if(!item||!selectedId) return;
+    ensureAnnots(item);
+    const a=item.annots.find(x=>x.id===selectedId); if(!a) return;
+    mutator(a); renderSvgOverlay();
+  }
+  strokeColorEl.addEventListener('input', ()=>updateSelected(a=>{
+    if (a.kind==='rect'||a.kind==='circle') a.stroke=strokeColorEl.value;
+    if (a.kind==='arrow') a.color=strokeColorEl.value;
+    if (a.kind==='text') a.color=strokeColorEl.value;
+  }));
+  strokeWidthEl.addEventListener('input', ()=>updateSelected(a=>{
+    const v=parseInt(strokeWidthEl.value||'6',10);
+    if (a.kind==='rect'||a.kind==='circle') a.strokeW=v;
+    if (a.kind==='arrow') a.thickness=v;
+  }));
+  fillColorEl.addEventListener('input', ()=>updateSelected(a=>{
+    if ((a.kind==='rect'||a.kind==='circle') && fillModeEl.value==='on') a.fill=fillColorEl.value;
+  }));
+  fillModeEl.addEventListener('change', ()=>updateSelected(a=>{
+    if (a.kind==='rect'||a.kind==='circle') a.fill = (fillModeEl.value==='on') ? fillColorEl.value : null;
+  }));
+
+  // ---- Export (pdf-lib)
+  exportBtn.addEventListener('click', async ()=>{
+    if (!state.items.length) return;
+    exportBtn.disabled=true; exportBtn.textContent='Export...';
+    try{
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const out = await PDFDocument.create();
+      const font = await out.embedFont(StandardFonts.Helvetica);
+      const pdfCache = new Map();
+
+      const hexToRgb01=(hex)=>{
+        const h=(hex||'#ffffff').replace('#','');
+        const r=parseInt(h.slice(0,2),16)/255;
+        const g=parseInt(h.slice(2,4),16)/255;
+        const b=parseInt(h.slice(4,6),16)/255;
+        return {r,g,b};
+      };
+      const emojiToPngDataUrl=(emoji,sizePx)=>{
+        const s=Math.max(24,Math.floor(sizePx||72));
+        const c=document.createElement('canvas'); c.width=s; c.height=s;
+        const cx=c.getContext('2d');
+        cx.font=`${Math.floor(s*0.9)}px Arial`;
+        cx.textAlign='center'; cx.textBaseline='middle';
+        cx.fillText(emoji, s/2, s/2);
+        return c.toDataURL('image/png');
+      };
+      const toPdfPoint=(xN,yN,vis)=>({x:vis.x0+xN*vis.w, y:vis.y0+yN*vis.h});
+
+      async function dataUrlToImage2(dataUrl){
+        return new Promise((resolve,reject)=>{
+          const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=dataUrl;
+        });
+      }
+
+      for (const item of state.items){
+        ensureAnnots(item);
+
+        if (item.type==='pdf'){
+          let srcDoc=pdfCache.get(item.sourceId);
+          if (!srcDoc){ srcDoc=await PDFDocument.load(item.srcPdfU8); pdfCache.set(item.sourceId,srcDoc); }
+          const [page]=await out.copyPages(srcDoc,[item.pageIndex]);
+          out.addPage(page);
+          const vis={x0:0,y0:0,w:page.getWidth(),h:page.getHeight()};
+
+          for (const a of item.annots){
+            if (a.kind==='text'){
+              const p=toPdfPoint(a.xN,a.yN,vis);
+              const c=hexToRgb01(a.color||'#ffffff');
+              page.drawText(a.text||'',{x:p.x,y:p.y,size:a.size||26,font,color:rgb(c.r,c.g,c.b)});
+            } else if (a.kind==='emoji'){
+              const p=toPdfPoint(a.xN,a.yN,vis);
+              const png=emojiToPngDataUrl(a.emoji||'🙂',a.size||72);
+              const img=await out.embedPng(png);
+              const s=Math.min(vis.w,Math.min(vis.h,a.size||72));
+              page.drawImage(img,{x:p.x,y:p.y,width:s,height:s});
+            } else if (a.kind==='rect'||a.kind==='circle'){
+              const x=vis.x0+a.xN*vis.w;
+              const yTop=vis.y0+a.yN*vis.h;
+              const w=a.wN*vis.w, h=a.hN*vis.h;
+              const y=yTop-h;
+              const sc=hexToRgb01(a.stroke||'#2b5cff');
+              const sw=a.strokeW||6;
+              const fill=a.fill?hexToRgb01(a.fill):null;
+              if (a.kind==='rect'){
+                page.drawRectangle({x,y,width:w,height:h,borderColor:rgb(sc.r,sc.g,sc.b),borderWidth:sw,
+                  color:fill?rgb(fill.r,fill.g,fill.b):undefined,opacity:fill?0.25:undefined});
+              } else {
+                page.drawEllipse({x:x+w/2,y:y+h/2,xScale:w/2,yScale:h/2,borderColor:rgb(sc.r,sc.g,sc.b),borderWidth:sw,
+                  color:fill?rgb(fill.r,fill.g,fill.b):undefined,opacity:fill?0.25:undefined});
+              }
+            } else if (a.kind==='arrow'){
+              const t=a.thickness||6;
+              const c=hexToRgb01(a.color||'#2b5cff');
+              const p1=toPdfPoint(a.x1N,a.y1N,vis);
+              const p2=toPdfPoint(a.x2N,a.y2N,vis);
+              let d='';
+              if (a.style==='curved'){
+                const pc=toPdfPoint(a.cxN,a.cyN,vis);
+                d=pathCurvedArrow(p1.x,p1.y,pc.x,pc.y,p2.x,p2.y,t);
+              } else if (a.style==='double'){
+                d=pathStraightArrow(p1.x,p1.y,p2.x,p2.y,t,true);
+              } else {
+                d=pathStraightArrow(p1.x,p1.y,p2.x,p2.y,t,false);
+              }
+              page.drawSvgPath(d,{color:rgb(c.r,c.g,c.b)});
+            }
+          }
+        } else if (item.type==='img'){
+          const imgEl=await dataUrlToImage2(item.dataUrl);
+          const w=imgEl.naturalWidth||item.imgW||800;
+          const h=imgEl.naturalHeight||item.imgH||600;
+
+          const c=document.createElement('canvas');
+          c.width=Math.floor(w); c.height=Math.floor(h);
+          const cctx=c.getContext('2d');
+          cctx.drawImage(imgEl,0,0,c.width,c.height);
+          const png=c.toDataURL('image/png');
+
+          const emb=await out.embedPng(png);
+          const page=out.addPage([w,h]);
+          page.drawImage(emb,{x:0,y:0,width:w,height:h});
+          const vis={x0:0,y0:0,w,h};
+
+          for (const a of item.annots){
+            if (a.kind==='text'){
+              const p=toPdfPoint(a.xN,a.yN,vis);
+              const cc=hexToRgb01(a.color||'#ffffff');
+              page.drawText(a.text||'',{x:p.x,y:p.y,size:a.size||26,font,color:rgb(cc.r,cc.g,cc.b)});
+            } else if (a.kind==='emoji'){
+              const p=toPdfPoint(a.xN,a.yN,vis);
+              const pngE=emojiToPngDataUrl(a.emoji||'🙂',a.size||72);
+              const im=await out.embedPng(pngE);
+              const s=Math.min(vis.w,Math.min(vis.h,a.size||72));
+              page.drawImage(im,{x:p.x,y:p.y,width:s,height:s});
+            } else if (a.kind==='rect'||a.kind==='circle'){
+              const x=vis.x0+a.xN*vis.w;
+              const yTop=vis.y0+a.yN*vis.h;
+              const ww=a.wN*vis.w, hh=a.hN*vis.h;
+              const y=yTop-hh;
+              const sc=hexToRgb01(a.stroke||'#2b5cff');
+              const sw=a.strokeW||6;
+              const fill=a.fill?hexToRgb01(a.fill):null;
+              if (a.kind==='rect'){
+                page.drawRectangle({x,y,width:ww,height:hh,borderColor:rgb(sc.r,sc.g,sc.b),borderWidth:sw,
+                  color:fill?rgb(fill.r,fill.g,fill.b):undefined,opacity:fill?0.25:undefined});
+              } else {
+                page.drawEllipse({x:x+ww/2,y:y+hh/2,xScale:ww/2,yScale:hh/2,borderColor:rgb(sc.r,sc.g,sc.b),borderWidth:sw,
+                  color:fill?rgb(fill.r,fill.g,fill.b):undefined,opacity:fill?0.25:undefined});
+              }
+            } else if (a.kind==='arrow'){
+              const t=a.thickness||6;
+              const cc=hexToRgb01(a.color||'#2b5cff');
+              const p1=toPdfPoint(a.x1N,a.y1N,vis);
+              const p2=toPdfPoint(a.x2N,a.y2N,vis);
+              let d='';
+              if (a.style==='curved'){
+                const pc=toPdfPoint(a.cxN,a.cyN,vis);
+                d=pathCurvedArrow(p1.x,p1.y,pc.x,pc.y,p2.x,p2.y,t);
+              } else if (a.style==='double'){
+                d=pathStraightArrow(p1.x,p1.y,p2.x,p2.y,t,true);
+              } else d=pathStraightArrow(p1.x,p1.y,p2.x,p2.y,t,false);
+              page.drawSvgPath(d,{color:rgb(cc.r,cc.g,cc.b)});
+            }
+          }
         }
       }
 
-      svgOverlay.appendChild(g);
-      continue;
+      const bytes=await out.save();
+      const blob=new Blob([bytes],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='export.pdf'; a.click();
+      URL.revokeObjectURL(url);
+    } catch(err){
+      alert('Erreur export : '+(err?.message||err));
+      console.error(err);
+    } finally {
+      exportBtn.disabled = !state.items.length;
+      exportBtn.textContent = 'Exporter PDF';
     }
-  }
+  });
 
-  delAnnotBtn.disabled = !selectedId;
-}
-
-
-  delAnnotBtn.disabled = !selectedId;
-}
-// Tool buttons
-toolSelectBtn?.addEventListener('click', ()=>{ setTool(TOOL.SELECT); renderSvgOverlay(); });
-toolTextBtn?.addEventListener('click', ()=>{ setTool(TOOL.TEXT); selectedId=null; renderSvgOverlay(); });
-toolRectBtn?.addEventListener('click', ()=>{ setTool(TOOL.RECT); selectedId=null; renderSvgOverlay(); });
-toolCircleBtn?.addEventListener('click', ()=>{ setTool(TOOL.CIRCLE); selectedId=null; renderSvgOverlay(); });
-  toolEmojiBtn?.addEventListener('click', ()=>{ setTool(TOOL.EMOJI); selectedId=null; renderSvgOverlay(); });
- toolArrowBtn?.addEventListener('click', ()=>{ setTool(TOOL.ARROW); selectedId=null; renderSvgOverlay(); });
- 
-
-
-delAnnotBtn?.addEventListener('click', async ()=>{
-  const item = getActiveItem();
-  if (!item || !selectedId) return;
-  ensureAnnots(item);
-  item.annots = item.annots.filter(x => x.id !== selectedId);
-  selectedId = null;
-  renderSvgOverlay();
-});
-
-// Helpers to identify clicked annot
-function hitAnnotId(e){
-  const g = e.target.closest('g[data-id]');
-  return g ? g.getAttribute('data-id') : null;
-}
-
-svgOverlay.addEventListener('pointerdown', (e)=>{
-  const item = getActiveItem();
-  if (!item) return;
-  ensureAnnots(item);
-
-  const pos = getCanvasPos(e);
-  const cw = previewCanvas.width || 1;
-  const ch = previewCanvas.height || 1;
-
-  const handle = e.target && e.target.getAttribute && e.target.getAttribute('data-handle');
-
-    if (!id) return;
-    selectedId = id;
-    const a = item.annots.find(x => x.id === id);
-    if (!a || (a.kind !== 'rect' && a.kind !== 'circle')) return;
-
-    dragHandle = { id, handle, start: pos, a0: { ...a } };
-    svgOverlay.setPointerCapture(e.pointerId);
-    renderSvgOverlay();
-    e.preventDefault();
-    return;
-  }
-    // Arrow handles
- if (tool === TOOL.SELECT && handle && (handle==='tl'||handle==='tr'||handle==='bl'||handle==='br')) {
-    const id = hitAnnotId(e);
-    if (!id) return;
-    selectedId = id;
-    const a = item.annots.find(x => x.id === id);
-    if (!a || a.kind !== 'arrow') return;
-
-    dragHandle = { id, handle, start: pos, a0: JSON.parse(JSON.stringify(a)) };
-    svgOverlay.setPointerCapture(e.pointerId);
-    renderSvgOverlay();
-    e.preventDefault();
-    return;
-  }
-
-    if (tool === TOOL.EMOJI){
-    const xN = clamp(pos.x / cw, 0, 1);
-    const yN = clamp(1 - (pos.y / ch), 0, 1);
-    const a = {
-      id: 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2),
-      kind: 'emoji',
-      xN, yN,
-      emoji: emojiPick?.value || '🙂',
-      size: parseInt(emojiSize?.value || '72', 10)
-    };
-    item.annots.push(a);
-    selectedId = a.id;
-    setTool(TOOL.SELECT);
-    renderSvgOverlay();
-    return;
-  }
-  if (tool === TOOL.ARROW){
-    const base = applySnap(pos, null, e.shiftKey);
-    const pN = canvasToNormPoint(base.x, base.y);
-
-    const color = strokeColorEl?.value || '#2b5cff';
-    const thickness = parseInt(strokeWidthEl?.value || '6', 10);
-    const style = arrowStyleEl?.value || 'straight';
-
-    drawTemp = { tool: TOOL.ARROW, x1: base.x, y1: base.y, x2: base.x, y2: base.y, style, color, thickness };
-
-    // default control point for curved
-    if (style === 'curved'){
-      drawTemp.cx = base.x;
-      drawTemp.cy = base.y - 80;
-    }
-
-    svgOverlay.setPointerCapture(e.pointerId);
-    e.preventDefault();
-    return;
-  }
-
-  if (tool === TOOL.RECT || tool === TOOL.CIRCLE){
-    drawTemp = { tool, x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y };
-    svgOverlay.setPointerCapture(e.pointerId);
-    e.preventDefault();
-    return;
-  }
-
-
-
-
-  if (tool === TOOL.TEXT){
-    const xN = clamp(pos.x / cw, 0, 1);
-    const yN = clamp(1 - (pos.y / ch), 0, 1);
-    const a = {
-      id: 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2),
-      kind: 'text',
-      xN, yN,
-      text: 'Texte',
-      size: 26,
-      color: '#ffffff'
-    };
-    item.annots.push(a);
-    selectedId = a.id;
-    setTool(TOOL.SELECT);
-    renderSvgOverlay();
-    return;
-  }
-
-  // SELECT mode
-  const id = hitAnnotId(e);
-  selectedId = id;
-  renderSvgOverlay();
-
-  if (!id) return;
-
-  const a = item.annots.find(x => x.id === id);
-  if (!a) return;
-
-  dragSel = { id, startX: pos.x, startY: pos.y, a0: { ...a } };
-  svgOverlay.setPointerCapture(e.pointerId);
-  e.preventDefault();
-});
-
-svgOverlay.addEventListener('pointermove', (e)=>{
-    const pos = getCanvasPos(e);
-
-  // Resize/move arrow handles
-  if (dragHandle){
-    const item = getActiveItem();
-    if (!item) return;
-    ensureAnnots(item);
-
-    const a = item.annots.find(x => x.id === dragHandle.id);
-    if (!a) return;
-
-    if (a.kind === 'arrow'){
-      const snapped = applySnap(pos, dragHandle.id, e.shiftKey);
-      const n = canvasToNormPoint(snapped.x, snapped.y);
-
-      if (dragHandle.handle === 'ap1'){ a.x1N = n.xN; a.y1N = n.yN; }
-      else if (dragHandle.handle === 'ap2'){ a.x2N = n.xN; a.y2N = n.yN; }
-      else if (dragHandle.handle === 'ac'){ a.cxN = n.xN; a.cyN = n.yN; }
-
-      renderSvgOverlay();
-      e.preventDefault();
-      return;
-    }
-    // sinon -> ta logique shapes existante continue
-  }
-
-  
-    // Resize handle for shapes
-  if (dragHandle){
-    const item = getActiveItem();
-    if (!item) return;
-    ensureAnnots(item);
-
-    const a = item.annots.find(x => x.id === dragHandle.id);
-    if (!a) return;
-
-    const cw = previewCanvas.width || 1;
-    const ch = previewCanvas.height || 1;
-
-    // Convert stored normalized -> canvas
-    const x0 = dragHandle.a0.xN * cw;
-    const yTop0 = (1 - dragHandle.a0.yN) * ch;
-    const w0 = dragHandle.a0.wN * cw;
-    const h0 = dragHandle.a0.hN * ch;
-    const y0 = yTop0 - h0;
-
-    let x = x0, y = y0, w = w0, h = h0;
-
-    const hx = pos.x, hy = pos.y;
-    const minSize = 8;
-
-    // Adjust corners
-    if (dragHandle.handle === 'tl'){
-      w = (x0 + w0) - hx; h = (y0 + h0) - hy; x = hx; y = hy;
-    } else if (dragHandle.handle === 'tr'){
-      w = hx - x0; h = (y0 + h0) - hy; x = x0; y = hy;
-    } else if (dragHandle.handle === 'bl'){
-      w = (x0 + w0) - hx; h = hy - y0; x = hx; y = y0;
-    } else if (dragHandle.handle === 'br'){
-      w = hx - x0; h = hy - y0; x = x0; y = y0;
-    }
-
-    w = Math.max(minSize, w);
-    h = Math.max(minSize, h);
-
-    // Back to normalized (xN = left, yN = top anchor)
-    a.xN = clamp(x / cw, 0, 1);
-    const yTop = y + h;
-    a.yN = clamp(1 - (yTop / ch), 0, 1);
-    a.wN = clamp(w / cw, 0.001, 1);
-    a.hN = clamp(h / ch, 0.001, 1);
-
-    renderSvgOverlay();
-    e.preventDefault();
-    return;
-  }
-
-  // Drawing temp shape
-  if (drawTemp){
-        if (drawTemp.tool === TOOL.ARROW){
-      const p = applySnap(pos, null, e.shiftKey);
-      drawTemp.x2 = p.x;
-      drawTemp.y2 = p.y;
-
-      // auto curve control if curved
-      if (drawTemp.style === 'curved'){
-        const mx = (drawTemp.x1 + drawTemp.x2)/2;
-        const my = (drawTemp.y1 + drawTemp.y2)/2;
-        const dx = drawTemp.x2 - drawTemp.x1;
-        const dy = drawTemp.y2 - drawTemp.y1;
-        const L = Math.hypot(dx,dy) || 1;
-        const nx = -dy/L, ny = dx/L;
-        const bump = 90;
-        drawTemp.cx = mx + nx*bump;
-        drawTemp.cy = my + ny*bump;
-      }
-
-      renderSvgOverlay();
-
-      const t = drawTemp.thickness || 6;
-      const fill = drawTemp.color || '#2b5cff';
-      let d='';
-      if (drawTemp.style==='curved'){
-        d = pathCurvedArrow(drawTemp.x1,drawTemp.y1, drawTemp.cx,drawTemp.cy, drawTemp.x2,drawTemp.y2, t);
-      } else if (drawTemp.style==='double'){
-        d = pathStraightArrow(drawTemp.x1,drawTemp.y1, drawTemp.x2,drawTemp.y2, t, true);
-      } else {
-        d = pathStraightArrow(drawTemp.x1,drawTemp.y1, drawTemp.x2,drawTemp.y2, t, false);
-      }
-
-      svgOverlay.appendChild(svgEl('path', { d, fill, opacity:'0.85' }));
-      e.preventDefault();
-      return;
-    }
-
-    drawTemp.x2 = pos.x;
-    drawTemp.y2 = pos.y;
-    
-    // show a ghost by temporarily rendering into overlay
-    renderSvgOverlay();
-    const x = Math.min(drawTemp.x1, drawTemp.x2);
-    const y = Math.min(drawTemp.y1, drawTemp.y2);
-    const w = Math.max(2, Math.abs(drawTemp.x2-drawTemp.x1));
-    const h = Math.max(2, Math.abs(drawTemp.y2-drawTemp.y1));
-    const g = svgEl('g', {});
-    const stroke = strokeColorEl.value || '#2b5cff';
-    const sw = parseInt(strokeWidthEl.value||'6',10);
-    const fill = (fillModeEl.value === 'on') ? (fillColorEl.value || '#ffffff') : 'none';
-
-    if (drawTemp.tool === TOOL.RECT){
-      g.appendChild(svgEl('rect',{x,y,width:w,height:h,rx:10,ry:10,stroke,'stroke-width':sw,fill,opacity:0.8}));
-    } else {
-      g.appendChild(svgEl('ellipse',{cx:x+w/2,cy:y+h/2,rx:w/2,ry:h/2,stroke,'stroke-width':sw,fill,opacity:0.8}));
-    }
-    svgOverlay.appendChild(g);
-    e.preventDefault();
-    return;
-  }
-
-  if (!dragSel) return;
-  const item = getActiveItem();
-  if (!item) return;
-  ensureAnnots(item);
-
-  const a = item.annots.find(x => x.id === dragSel.id);
-  if (!a) return;
-
-  const dx = pos.x - dragSel.startX;
-  const dy = pos.y - dragSel.startY;
-
-  const x0 = dragSel.a0.xN * cw;
-  const y0 = (1 - dragSel.a0.yN) * ch;
-
-  const x = x0 + dx;
-  const y = y0 + dy;
-
-  a.xN = clamp(x / cw, 0, 1);
-  a.yN = clamp(1 - (y / ch), 0, 1);
-
-  renderSvgOverlay();
-  e.preventDefault();
-});
-
-svgOverlay.addEventListener('pointerup', ()=>{
-  const item = getActiveItem();
-  if (!item) { dragSel=null; dragHandle=null; drawTemp=null; return; }
-  ensureAnnots(item);
-
-  // Finalize ARROW
-  if (drawTemp && drawTemp.tool === TOOL.ARROW){
-    if (Math.hypot(drawTemp.x2-drawTemp.x1, drawTemp.y2-drawTemp.y1) < 8){
-      drawTemp = null;
-      renderSvgOverlay();
-      return;
-    }
-    const p1N = canvasToNormPoint(drawTemp.x1, drawTemp.y1);
-    const p2N = canvasToNormPoint(drawTemp.x2, drawTemp.y2);
-
-    const a = {
-      id: 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2),
-      kind: 'arrow',
-      style: drawTemp.style,
-      color: drawTemp.color,
-      thickness: drawTemp.thickness,
-      x1N: p1N.xN, y1N: p1N.yN,
-      x2N: p2N.xN, y2N: p2N.yN,
-    };
-    if (drawTemp.style === 'curved'){
-      const pcN = canvasToNormPoint(drawTemp.cx, drawTemp.cy);
-      a.cxN = pcN.xN; a.cyN = pcN.yN;
-    }
-    item.annots.push(a);
-    selectedId = a.id;
-
-    drawTemp = null;
-    setTool(TOOL.SELECT);
-    renderSvgOverlay();
-    return;
-  }
-
-  // Finalize RECT/CIRCLE
-  if (drawTemp && (drawTemp.tool === TOOL.RECT || drawTemp.tool === TOOL.CIRCLE)){
-    const cw = previewCanvas.width || 1;
-    const ch = previewCanvas.height || 1;
-
-    const x = Math.min(drawTemp.x1, drawTemp.x2);
-    const y = Math.min(drawTemp.y1, drawTemp.y2);
-    const w = Math.max(2, Math.abs(drawTemp.x2-drawTemp.x1));
-    const h = Math.max(2, Math.abs(drawTemp.y2-drawTemp.y1));
-
-    const xN = clamp(x / cw, 0, 1);
-    const yTop = y + h;
-    const yN = clamp(1 - (yTop / ch), 0, 1);
-    const wN = clamp(w / cw, 0.001, 1);
-    const hN = clamp(h / ch, 0.001, 1);
-
-    const stroke = strokeColorEl.value || '#2b5cff';
-    const strokeW = parseInt(strokeWidthEl.value||'6',10);
-    const fill = (fillModeEl.value === 'on') ? (fillColorEl.value || '#ffffff') : null;
-
-    const a = {
-      id: 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2),
-      kind: (drawTemp.tool === TOOL.RECT ? 'rect' : 'circle'),
-      xN, yN, wN, hN,
-      stroke, strokeW,
-      fill
-    };
-    item.annots.push(a);
-    selectedId = a.id;
-
-    drawTemp = null;
-    setTool(TOOL.SELECT);
-    renderSvgOverlay();
-    return;
-  }
-
-  dragSel = null;
-  dragHandle = null;
-});
-
-
-svgOverlay.addEventListener('dblclick', (e)=>{
-  const item = getActiveItem();
-  if (!item) return;
-  ensureAnnots(item);
-
-  const id = hitAnnotId(e);
-  if (!id) return;
-
-  const a = item.annots.find(x => x.id === id);
-  if (!a || a.kind !== 'text') return;
-
-  const next = prompt("Modifier le texte :", a.text || "");
-  if (next === null) return;
-  a.text = next;
-  selectedId = id;
-  renderSvgOverlay();
-});
-
-  // ---- Full render
   async function renderAll(){
     setStatus();
     await renderThumbs();
     await renderPreview();
     setStatus();
   }
-function updateSelected(mutator){
-  const item = getActiveItem();
-  if (!item || !selectedId) return;
-  ensureAnnots(item);
-  const a = item.annots.find(x => x.id === selectedId);
-  if (!a) return;
-  mutator(a);
-  renderSvgOverlay();
-}
-let clipboardAnnot = null;
-
-function getSelectedAnnot(){
-  const item = getActiveItem();
-  if (!item || !selectedId) return null;
-  ensureAnnots(item);
-  return item.annots.find(x => x.id === selectedId) || null;
-}
-
-window.addEventListener('keydown', (e)=>{
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-  const mod = isMac ? e.metaKey : e.ctrlKey;
-
-  // Delete
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId){
-    e.preventDefault();
-    const item = getActiveItem();
-    if (!item) return;
-    ensureAnnots(item);
-    item.annots = item.annots.filter(x => x.id !== selectedId);
-    selectedId = null;
-    renderSvgOverlay();
-    return;
-  }
-
-  // Copy
-  if (mod && e.key.toLowerCase() === 'c'){
-    const a = getSelectedAnnot();
-    if (!a) return;
-    e.preventDefault();
-    clipboardAnnot = JSON.parse(JSON.stringify(a));
-    return;
-  }
-
-  // Paste
-  if (mod && e.key.toLowerCase() === 'v'){
-    const item = getActiveItem();
-    if (!item || !clipboardAnnot) return;
-    e.preventDefault();
-    ensureAnnots(item);
-
-    const a = JSON.parse(JSON.stringify(clipboardAnnot));
-    a.id = 'a_' + Date.now() + '_' + Math.random().toString(16).slice(2);
-
-    // offset
-    a.xN = clamp((a.xN || 0) + 0.02, 0, 1);
-    a.yN = clamp((a.yN || 0) + 0.02, 0, 1);
-
-    // Arrow extra points
-    if (a.kind === 'arrow'){
-      a.x1N = clamp((a.x1N || 0) + 0.02, 0, 1);
-      a.y1N = clamp((a.y1N || 0) + 0.02, 0, 1);
-      a.x2N = clamp((a.x2N || 0) + 0.02, 0, 1);
-      a.y2N = clamp((a.y2N || 0) + 0.02, 0, 1);
-      if (a.style === 'curved'){
-        a.cxN = clamp((a.cxN || 0) + 0.02, 0, 1);
-        a.cyN = clamp((a.cyN || 0) + 0.02, 0, 1);
-      }
-    }
-
-    
-    // shapes (rect/circle) have wN/hN unchanged
-    // lines/arrows (partie 5) will also be handled later
-
-    item.annots.push(a);
-    selectedId = a.id;
-    renderSvgOverlay();
-  }
-});
-
-strokeColorEl?.addEventListener('input', ()=>updateSelected(a=>{
-  if (a.stroke !== undefined) a.stroke = strokeColorEl.value;
-}));
-strokeWidthEl?.addEventListener('input', ()=>updateSelected(a=>{
-  if (a.strokeW !== undefined) a.strokeW = parseInt(strokeWidthEl.value||'6',10);
-}));
-fillColorEl?.addEventListener('input', ()=>updateSelected(a=>{
-  if (a.kind==='rect' || a.kind==='circle'){
-    if (fillModeEl.value === 'on') a.fill = fillColorEl.value;
-  }
-}));
-fillModeEl?.addEventListener('change', ()=>updateSelected(a=>{
-  if (a.kind==='rect' || a.kind==='circle'){
-    a.fill = (fillModeEl.value === 'on') ? fillColorEl.value : null;
-  }
-}));
 
   // init
+  setTool(TOOL.SELECT);
   renderAll();
-exportBtn.addEventListener('click', async ()=>{
-  if (!state.items.length) return;
-
-  exportBtn.disabled = true;
-  exportBtn.textContent = 'Export...';
-
-  try{
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-    const out = await PDFDocument.create();
-    const font = await out.embedFont(StandardFonts.Helvetica);
-
-    // cache pdf sources
-    const pdfCache = new Map();
-
-    // helper
-    function hexToRgb01(hex){
-      const h = (hex||'#ffffff').replace('#','');
-      const r = parseInt(h.slice(0,2),16)/255;
-      const g = parseInt(h.slice(2,4),16)/255;
-      const b = parseInt(h.slice(4,6),16)/255;
-      return {r,g,b};
-    }
-
-    async function dataUrlToImage(dataUrl){
-      return new Promise((resolve,reject)=>{
-        const img = new Image();
-        img.onload = ()=>resolve(img);
-        img.onerror = reject;
-        img.src = dataUrl;
-      });
-    }
-
-    function emojiToPngDataUrl(emoji, sizePx){
-      const s = Math.max(24, Math.floor(sizePx||72));
-      const c = document.createElement('canvas');
-      c.width = s; c.height = s;
-      const cx = c.getContext('2d');
-      cx.font = `${Math.floor(s*0.9)}px Arial`;
-      cx.textAlign = 'center';
-      cx.textBaseline = 'middle';
-      cx.fillText(emoji, s/2, s/2);
-      return c.toDataURL('image/png');
-    }
-
-    // Normalize -> PDF coords helper
-    function toPdfPoint(xN, yN, vis){
-      // yN is bottom-based already
-      return { x: vis.x0 + xN * vis.w, y: vis.y0 + yN * vis.h };
-    }
-
-    for (const item of state.items){
-      // ensure annots exists
-      if (!item.annots) item.annots = [];
-
-      if (item.type === 'pdf'){
-        let srcDoc = pdfCache.get(item.srcPdfU8);
-        if (!srcDoc){
-          srcDoc = await PDFDocument.load(item.srcPdfU8);
-          pdfCache.set(item.srcPdfU8, srcDoc);
-        }
-
-        const [page] = await out.copyPages(srcDoc, [item.pageIndex]);
-        out.addPage(page);
-
-        const vis = { x0:0, y0:0, w: page.getWidth(), h: page.getHeight() };
-
-        // draw annots
-        for (const a of item.annots){
-          if (a.kind === 'text'){
-            const p = toPdfPoint(a.xN, a.yN, vis);
-            const c = hexToRgb01(a.color || '#ffffff');
-            page.drawText(a.text || '', { x:p.x, y:p.y, size: a.size || 26, font, color: rgb(c.r,c.g,c.b) });
-          }
-
-          if (a.kind === 'emoji'){
-            const p = toPdfPoint(a.xN, a.yN, vis);
-            const png = emojiToPngDataUrl(a.emoji || '🙂', a.size || 72);
-            const img = await out.embedPng(png);
-            const s = Math.min(vis.w, Math.min(vis.h, a.size || 72));
-            page.drawImage(img, { x:p.x, y:p.y, width:s, height:s });
-          }
-
-          if (a.kind === 'rect' || a.kind === 'circle'){
-            const x = vis.x0 + a.xN * vis.w;
-            const yTop = vis.y0 + a.yN * vis.h;
-            const w = a.wN * vis.w;
-            const h = a.hN * vis.h;
-            const y = yTop - h;
-
-            const sc = hexToRgb01(a.stroke || '#2b5cff');
-            const sw = a.strokeW || 6;
-            const fill = a.fill ? hexToRgb01(a.fill) : null;
-
-            if (a.kind === 'rect'){
-              page.drawRectangle({
-                x, y, width:w, height:h,
-                borderColor: rgb(sc.r,sc.g,sc.b),
-                borderWidth: sw,
-                color: fill ? rgb(fill.r,fill.g,fill.b) : undefined,
-                opacity: fill ? 0.25 : undefined
-              });
-            } else {
-              page.drawEllipse({
-                x: x + w/2, y: y + h/2,
-                xScale: w/2, yScale: h/2,
-                borderColor: rgb(sc.r,sc.g,sc.b),
-                borderWidth: sw,
-                color: fill ? rgb(fill.r,fill.g,fill.b) : undefined,
-                opacity: fill ? 0.25 : undefined
-              });
-            }
-          }
-
-          if (a.kind === 'arrow'){
-            const t = a.thickness || 6;
-            const c = hexToRgb01(a.color || '#2b5cff');
-
-            const p1 = toPdfPoint(a.x1N, a.y1N, vis);
-            const p2 = toPdfPoint(a.x2N, a.y2N, vis);
-
-            let d='';
-            if (a.style === 'curved'){
-              const pc = toPdfPoint(a.cxN, a.cyN, vis);
-              d = pathCurvedArrow(p1.x,p1.y, pc.x,pc.y, p2.x,p2.y, t);
-            } else if (a.style === 'double'){
-              d = pathStraightArrow(p1.x,p1.y, p2.x,p2.y, t, true);
-            } else {
-              d = pathStraightArrow(p1.x,p1.y, p2.x,p2.y, t, false);
-            }
-
-            page.drawSvgPath(d, { color: rgb(c.r,c.g,c.b) });
-          }
-        }
-
-      } else if (item.type === 'img'){
-        // Render image into PDF page (scaled to max width 595)
-        const imgEl = await dataUrlToImage(item.dataUrl);
-
-        const maxW = 595;
-        const scale = Math.min(1, maxW / imgEl.naturalWidth);
-        const w = imgEl.naturalWidth * scale;
-        const h = imgEl.naturalHeight * scale;
-
-        // convert to PNG data url (safer)
-        const c = document.createElement('canvas');
-        c.width = Math.floor(w);
-        c.height = Math.floor(h);
-        const cctx = c.getContext('2d');
-        cctx.drawImage(imgEl, 0, 0, c.width, c.height);
-        const png = c.toDataURL('image/png');
-
-        const emb = await out.embedPng(png);
-        const page = out.addPage([w, h]);
-        page.drawImage(emb, { x:0, y:0, width:w, height:h });
-
-        const vis = { x0:0, y0:0, w, h };
-
-        for (const a of item.annots){
-          if (a.kind === 'text'){
-            const p = toPdfPoint(a.xN, a.yN, vis);
-            const cc = hexToRgb01(a.color || '#ffffff');
-            page.drawText(a.text || '', { x:p.x, y:p.y, size: a.size || 26, font, color: rgb(cc.r,cc.g,cc.b) });
-          }
-          if (a.kind === 'emoji'){
-            const p = toPdfPoint(a.xN, a.yN, vis);
-            const pngE = emojiToPngDataUrl(a.emoji || '🙂', a.size || 72);
-            const im = await out.embedPng(pngE);
-            const s = Math.min(vis.w, Math.min(vis.h, a.size || 72));
-            page.drawImage(im, { x:p.x, y:p.y, width:s, height:s });
-          }
-          if (a.kind === 'rect' || a.kind === 'circle'){
-            const x = vis.x0 + a.xN * vis.w;
-            const yTop = vis.y0 + a.yN * vis.h;
-            const ww = a.wN * vis.w;
-            const hh = a.hN * vis.h;
-            const y = yTop - hh;
-
-            const sc = hexToRgb01(a.stroke || '#2b5cff');
-            const sw = a.strokeW || 6;
-            const fill = a.fill ? hexToRgb01(a.fill) : null;
-
-            if (a.kind === 'rect'){
-              page.drawRectangle({
-                x, y, width:ww, height:hh,
-                borderColor: rgb(sc.r,sc.g,sc.b),
-                borderWidth: sw,
-                color: fill ? rgb(fill.r,fill.g,fill.b) : undefined,
-                opacity: fill ? 0.25 : undefined
-              });
-            } else {
-              page.drawEllipse({
-                x: x + ww/2, y: y + hh/2,
-                xScale: ww/2, yScale: hh/2,
-                borderColor: rgb(sc.r,sc.g,sc.b),
-                borderWidth: sw,
-                color: fill ? rgb(fill.r,fill.g,fill.b) : undefined,
-                opacity: fill ? 0.25 : undefined
-              });
-            }
-          }
-          if (a.kind === 'arrow'){
-            const t = a.thickness || 6;
-            const cc = hexToRgb01(a.color || '#2b5cff');
-
-            const p1 = toPdfPoint(a.x1N, a.y1N, vis);
-            const p2 = toPdfPoint(a.x2N, a.y2N, vis);
-
-            let d='';
-            if (a.style === 'curved'){
-              const pc = toPdfPoint(a.cxN, a.cyN, vis);
-              d = pathCurvedArrow(p1.x,p1.y, pc.x,pc.y, p2.x,p2.y, t);
-            } else if (a.style === 'double'){
-              d = pathStraightArrow(p1.x,p1.y, p2.x,p2.y, t, true);
-            } else {
-              d = pathStraightArrow(p1.x,p1.y, p2.x,p2.y, t, false);
-            }
-            page.drawSvgPath(d, { color: rgb(cc.r,cc.g,cc.b) });
-          }
-        }
-      }
-    }
-
-    const bytes = await out.save();
-    const blob = new Blob([bytes], { type:'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'export.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
-
-  } catch(err){
-    alert('Erreur export : ' + (err?.message || err));
-    console.error(err);
-  } finally {
-    exportBtn.disabled = !state.items.length;
-    exportBtn.textContent = 'Exporter PDF';
-  }
-});
 
 })();
 </script>
