@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF Studio</title>
+<title>PDF Studio V2.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
@@ -11,655 +11,213 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600&display=swap');
 
 :root {
-  --bg: #f0f4ff;
-  --white: #ffffff;
-  --card: #ffffff;
-  --border: #e2e8f8;
-  --blue: #4361ee;
-  --blue2: #3a86ff;
-  --purple: #7b5ea7;
-  --green: #2ec4b6;
-  --orange: #ff9f1c;
-  --red: #e63946;
-  --text: #1a1d2e;
-  --text2: #6b7194;
-  --shadow: 0 4px 24px rgba(67,97,238,0.10);
-  --shadow-hover: 0 8px 32px rgba(67,97,238,0.18);
+  --bg:#f0f4ff; --white:#fff; --border:#e2e8f8;
+  --blue:#4361ee; --purple:#7b5ea7; --green:#2ec4b6;
+  --orange:#ff9f1c; --red:#e63946; --text:#1a1d2e; --text2:#6b7194;
 }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:'Outfit',sans-serif;color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 
-* { margin:0; padding:0; box-sizing:border-box; }
+/* HEADER */
+header{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(67,97,238,.07);flex-shrink:0;}
+.logo{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.35rem;display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.logo-text{background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:12px;border:1px solid var(--border);}
+.nav-tab{padding:7px 18px;border:none;background:transparent;border-radius:9px;font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .2s;}
+.nav-tab.active{background:var(--white);color:var(--blue);box-shadow:0 2px 8px rgba(67,97,238,.12);}
 
-body {
-  background: var(--bg);
-  font-family: 'Outfit', sans-serif;
-  color: var(--text);
-  min-height: 100vh;
-  background-image: radial-gradient(circle at 20% 20%, rgba(67,97,238,0.06) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 80%, rgba(123,94,167,0.06) 0%, transparent 50%);
-}
+/* MAIN */
+.main{flex:1;}
+.page{display:none;padding:28px 32px;max-width:1080px;margin:0 auto;width:100%;}
+.page.active{display:block;}
+#page-editor{padding:0;max-width:none;}
 
-/* ── HEADER ── */
-header {
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 68px;
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  box-shadow: 0 2px 12px rgba(67,97,238,0.06);
-}
+.page-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:1.5rem;margin-bottom:4px;}
+.page-sub{color:var(--text2);font-size:.9rem;margin-bottom:24px;}
 
-.logo {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 900;
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logo-icon {
-  width: 38px; height: 38px;
-  background: linear-gradient(135deg, var(--blue), var(--purple));
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem;
-  box-shadow: 0 4px 12px rgba(67,97,238,0.3);
-}
-.logo-text { background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+/* DROPZONE */
+.dropzone{border:3px dashed var(--border);border-radius:20px;padding:44px 28px;text-align:center;background:var(--white);margin-bottom:20px;transition:border-color .2s,background .2s;cursor:pointer;user-select:none;}
+.dropzone:hover{border-color:#a0b0f0;}
+.dropzone.over{border-color:var(--blue);background:#f0f3ff;}
+.dz-icon{font-size:3rem;display:block;margin-bottom:12px;}
+.dz-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:1.15rem;margin-bottom:6px;}
+.dz-sub{color:var(--text2);font-size:.85rem;margin-bottom:18px;}
+.fmt-pills{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:18px;}
+.pill{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;}
+.p-img{background:#dbeafe;color:#1d4ed8;}.p-doc{background:#ede9fe;color:#6d28d9;}.p-pdf{background:#fee2e2;color:#b91c1c;}.p-txt{background:#d1fae5;color:#065f46;}
 
-/* NAV TABS */
-.nav {
-  display: flex;
-  gap: 6px;
-  background: var(--bg);
-  padding: 5px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-}
-.nav-tab {
-  padding: 8px 20px;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text2);
-  cursor: pointer;
-  transition: all 0.25s;
-  display: flex; align-items: center; gap: 7px;
-}
-.nav-tab.active {
-  background: var(--white);
-  color: var(--blue);
-  box-shadow: 0 2px 10px rgba(67,97,238,0.12);
-}
-.nav-tab:hover:not(.active) { color: var(--text); }
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;transition:all .18s;}
+.btn-blue{background:var(--blue);color:#fff;} .btn-blue:hover{background:#3451d1;transform:translateY(-1px);}
+.btn-green{background:var(--green);color:#fff;} .btn-green:hover{background:#27a89e;transform:translateY(-1px);}
+.btn-ghost{background:var(--white);color:var(--text2);border:1.5px solid var(--border);} .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+.btn-sm{padding:6px 14px;font-size:.8rem;border-radius:8px;}
 
-/* ── PAGES ── */
-.page { display: none; padding: 32px; max-width: 1100px; margin: 0 auto; }
-.page.active { display: block; }
+/* OPTIONS */
+.options-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.opt-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;flex:1;min-width:130px;}
+.opt-label{font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+select,input[type="number"]{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:.83rem;width:100%;cursor:pointer;}
+select:focus,input:focus{outline:none;border-color:var(--blue);}
+.toggle-row{display:flex;align-items:center;gap:9px;padding-top:2px;}
+.toggle{position:relative;width:40px;height:22px;background:#cbd5e1;border-radius:11px;cursor:pointer;border:none;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--blue);}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:white;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle.on::after{left:21px;}
+.toggle-lbl{font-size:.83rem;font-weight:600;}
 
-/* ── SECTION TITLE ── */
-.section-title {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  font-size: 1.6rem;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-.section-sub { color: var(--text2); font-size: 0.95rem; margin-bottom: 28px; }
+/* FILE LIST */
+.files-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.files-hdr-left{display:flex;align-items:center;gap:8px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;}
+.cnt-badge{background:var(--blue);color:white;border-radius:20px;padding:1px 9px;font-size:.75rem;font-weight:700;}
+.drag-hint{font-size:.77rem;color:var(--text2);}
+#fileCards{display:flex;flex-direction:column;gap:8px;min-height:10px;margin-bottom:20px;}
+.empty-state{text-align:center;padding:28px;color:var(--text2);font-size:.88rem;border:2px dashed var(--border);border-radius:14px;background:rgba(255,255,255,.6);}
+.empty-icon{font-size:2rem;display:block;margin-bottom:8px;}
 
-/* ── DROP ZONE ── */
-.dropzone {
-  border: 3px dashed var(--border);
-  border-radius: 24px;
-  padding: 52px 32px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: var(--white);
-  position: relative;
-  overflow: hidden;
-  margin-bottom: 28px;
-}
-.dropzone::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(67,97,238,0.04), rgba(123,94,167,0.04));
-  opacity: 0; transition: opacity 0.3s;
-}
-.dropzone.over, .dropzone:hover { border-color: var(--blue); }
-.dropzone.over::before, .dropzone:hover::before { opacity: 1; }
-.dropzone.over { background: #f5f7ff; transform: scale(1.005); }
+/* FILE CARD */
+.file-card{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color .15s,box-shadow .15s,transform .15s;}
+.file-card:hover{border-color:#a0b0f0;box-shadow:0 2px 12px rgba(67,97,238,.09);}
+.file-card.dragging{opacity:.4;transform:scale(.98);border-style:dashed;}
+.file-card.drag-over{border-color:var(--blue);background:#f0f3ff;transform:scale(1.01);}
+.drag-handle{color:#c0cadf;font-size:1.1rem;cursor:grab;flex-shrink:0;padding:2px 4px;line-height:1;}
+.drag-handle:active{cursor:grabbing;}
+.fc-num{width:26px;height:26px;background:linear-gradient(135deg,var(--blue),var(--purple));color:white;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;flex-shrink:0;font-family:'Nunito',sans-serif;}
+.fc-thumb{width:40px;height:48px;border-radius:7px;overflow:hidden;flex-shrink:0;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:1.4rem;}
+.fc-thumb img{width:100%;height:100%;object-fit:cover;}
+.fc-info{flex:1;min-width:0;}
+.fc-name{font-weight:700;font-size:.87rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.fc-meta{font-size:.75rem;color:var(--text2);display:flex;gap:8px;}
+.fc-status{padding:3px 9px;border-radius:20px;font-size:.73rem;font-weight:700;flex-shrink:0;}
+.s-ready{background:#dbeafe;color:#1d4ed8;} .s-working{background:#fef3c7;color:#92400e;} .s-done{background:#d1fae5;color:#065f46;} .s-error{background:#fee2e2;color:#b91c1c;}
+.fc-del{background:none;border:none;color:#c0cadf;cursor:pointer;font-size:1rem;padding:3px 6px;border-radius:6px;transition:all .15s;flex-shrink:0;}
+.fc-del:hover{background:#fee2e2;color:var(--red);}
 
-.dz-emoji {
-  font-size: 3.5rem;
-  display: block;
-  margin-bottom: 14px;
-  animation: bounce 2.5s ease-in-out infinite;
-}
-@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+/* PROGRESS */
+.prog-wrap{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:none;margin-bottom:14px;}
+.prog-wrap.show{display:block;}
+.prog-label{font-weight:700;font-size:.87rem;margin-bottom:10px;}
+.prog-bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:4px;transition:width .3s;width:0%;}
+.prog-step{font-size:.77rem;color:var(--text2);margin-top:6px;}
 
-.dz-title {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  font-size: 1.25rem;
-  margin-bottom: 6px;
-  color: var(--text);
-}
-.dz-sub { color: var(--text2); font-size: 0.88rem; margin-bottom: 20px; line-height: 1.6; }
+/* ACTIONS BAR */
+.actions-bar{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(67,97,238,.06);}
+.actions-bar .spacer{flex:1;}
 
-.format-pills {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 22px;
-}
-.pill {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-.pill-img { background: #e8f4fd; color: #2196f3; }
-.pill-doc { background: #e8f0fe; color: #4361ee; }
-.pill-pdf { background: #fde8e8; color: #e63946; }
-.pill-txt { background: #e8fdf5; color: #2ec4b6; }
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:9999;}
+.overlay.show{display:flex;}
+.modal{background:var(--white);border-radius:20px;padding:36px;text-align:center;max-width:380px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,.13);animation:popIn .3s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+.modal-icon{font-size:3.5rem;display:block;margin-bottom:14px;}
+.modal-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.4rem;margin-bottom:6px;}
+.modal-sub{color:var(--text2);font-size:.87rem;margin-bottom:22px;line-height:1.6;}
+.modal-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
 
-.btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 11px 26px;
-  border: none; border-radius: 12px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600; font-size: 0.92rem;
-  cursor: pointer; transition: all 0.2s;
-}
-.btn-blue { background: var(--blue); color: #fff; box-shadow: 0 4px 14px rgba(67,97,238,0.35); }
-.btn-blue:hover { background: #3451d1; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(67,97,238,0.4); }
-.btn-green { background: var(--green); color: #fff; box-shadow: 0 4px 14px rgba(46,196,182,0.35); }
-.btn-green:hover { background: #25a99f; transform: translateY(-2px); }
-.btn-orange { background: var(--orange); color: #fff; box-shadow: 0 4px 14px rgba(255,159,28,0.35); }
-.btn-orange:hover { background: #e88e10; transform: translateY(-2px); }
-.btn-ghost { background: var(--white); color: var(--text2); border: 1.5px solid var(--border); }
-.btn-ghost:hover { border-color: var(--blue); color: var(--blue); background: #f5f7ff; }
-.btn-red { background: #fde8e8; color: var(--red); border: 1.5px solid #fac5c8; }
-.btn-red:hover { background: #fac5c8; }
-.btn-sm { padding: 7px 14px; font-size: 0.82rem; border-radius: 9px; }
+/* TOAST */
+.toast{position:fixed;bottom:72px;right:24px;background:var(--text);color:white;border-radius:12px;padding:12px 18px;font-size:.86rem;font-weight:600;z-index:99999;animation:toastIn .25s ease;box-shadow:0 6px 24px rgba(0,0,0,.12);pointer-events:none;}
+.toast.ok{background:var(--green);} .toast.err{background:var(--red);}
+@keyframes toastIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── FILE CARDS ── */
-.files-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 14px;
-}
-.files-label {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800; font-size: 1rem; color: var(--text);
-  display: flex; align-items: center; gap: 8px;
-}
-.count-badge {
-  background: var(--blue); color: white;
-  border-radius: 20px; padding: 2px 10px;
-  font-size: 0.78rem; font-weight: 700;
-}
-.hint-text {
-  font-size: 0.8rem; color: var(--text2);
-  display: flex; align-items: center; gap: 5px;
-}
+/* FOOTER */
+footer{text-align:center;padding:13px 24px;font-size:.78rem;color:var(--text2);border-top:1px solid var(--border);background:var(--white);flex-shrink:0;}
 
-#fileCards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 24px;
-  min-height: 20px;
-}
-
-.file-card {
-  background: var(--white);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 16px;
-  display: flex; align-items: center; gap: 14px;
-  transition: all 0.2s;
-  cursor: grab;
-  user-select: none;
-  position: relative;
-}
-.file-card:hover { border-color: var(--blue); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-.file-card.dragging { opacity: 0.45; transform: scale(0.98); border-style: dashed; }
-.file-card.drag-over { border-color: var(--blue); border-style: solid; background: #f5f7ff; transform: scale(1.01); }
-
-.file-card-num {
-  width: 28px; height: 28px;
-  background: linear-gradient(135deg, var(--blue), var(--purple));
-  color: white;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 0.82rem;
-  flex-shrink: 0;
-  font-family: 'Nunito', sans-serif;
-}
-
-.file-thumb {
-  width: 44px; height: 52px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg);
-  font-size: 1.6rem;
-  position: relative;
-}
-.file-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.file-thumb canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
-
-.file-card-info { flex: 1; min-width: 0; }
-.file-card-name {
-  font-weight: 700; font-size: 0.9rem;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-bottom: 3px;
-}
-.file-card-meta { font-size: 0.78rem; color: var(--text2); display: flex; gap: 10px; }
-
-.file-card-status {
-  padding: 4px 10px; border-radius: 20px;
-  font-size: 0.75rem; font-weight: 700;
-  flex-shrink: 0;
-}
-.st-ready { background: #e8f0fe; color: var(--blue); }
-.st-converting { background: #fff8e8; color: var(--orange); }
-.st-done { background: #e8fdf5; color: var(--green); }
-.st-error { background: #fde8e8; color: var(--red); }
-
-.drag-handle {
-  color: #c0c8e0; font-size: 1.2rem;
-  cursor: grab; flex-shrink: 0; padding: 0 4px;
-  line-height: 1;
-}
-.drag-handle:active { cursor: grabbing; }
-
-.card-remove {
-  background: none; border: none;
-  color: #c0c8e0; font-size: 1.1rem;
-  cursor: pointer; padding: 4px 6px;
-  border-radius: 6px; transition: all 0.15s;
-  flex-shrink: 0;
-}
-.card-remove:hover { background: #fde8e8; color: var(--red); }
-
-/* ── ACTIONS BAR ── */
-.actions-bar {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 20px 24px;
-  display: flex; align-items: center; gap: 12px;
-  flex-wrap: wrap;
-  box-shadow: var(--shadow);
-}
-.actions-bar-sep { flex: 1; }
-
-/* Options panel */
-.options-row {
-  display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
-}
-.opt-card {
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 18px;
-  flex: 1; min-width: 140px;
-}
-.opt-label { font-size: 0.75rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-
-select, input[type="number"] {
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  color: var(--text);
-  padding: 7px 12px;
-  border-radius: 9px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.85rem;
-  width: 100%;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-select:focus, input:focus { outline: none; border-color: var(--blue); }
-
-/* Toggle switch */
-.toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
-.toggle {
-  width: 42px; height: 24px;
-  background: var(--border); border-radius: 12px;
-  position: relative; cursor: pointer; transition: background 0.2s;
-  border: none; flex-shrink: 0;
-}
-.toggle.on { background: var(--blue); }
-.toggle::after {
-  content: ''; position: absolute;
-  width: 18px; height: 18px;
-  background: white; border-radius: 50%;
-  top: 3px; left: 3px;
-  transition: left 0.2s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-}
-.toggle.on::after { left: 21px; }
-.toggle-label { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-
-/* Progress */
-.progress-wrap {
-  background: var(--white);
-  border-radius: 20px;
-  padding: 24px;
-  border: 1px solid var(--border);
-  display: none;
-  margin-bottom: 16px;
-}
-.progress-wrap.show { display: block; }
-.progress-label { font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.progress-bar { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple)); border-radius: 5px; transition: width 0.35s ease; width: 0%; }
-.progress-step { font-size: 0.8rem; color: var(--text2); margin-top: 8px; }
-
-/* Empty state */
-.empty-state {
-  text-align: center; padding: 32px; color: var(--text2); font-size: 0.9rem;
-  border: 2px dashed var(--border); border-radius: 16px;
-  background: rgba(255,255,255,0.5);
-}
-.empty-state-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
-
-/* ── SUCCESS MODAL ── */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(6px);
-  display: none; align-items: center; justify-content: center;
-  z-index: 9999;
-}
-.modal-overlay.show { display: flex; }
-.modal {
-  background: var(--white);
-  border-radius: 24px;
-  padding: 40px;
-  text-align: center;
-  max-width: 400px; width: 90%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-  animation: popIn 0.35s cubic-bezier(.175,.885,.32,1.275);
-}
-@keyframes popIn { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
-.modal-icon { font-size: 4rem; margin-bottom: 16px; display: block; }
-.modal-title { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.5rem; margin-bottom: 8px; }
-.modal-sub { color: var(--text2); font-size: 0.9rem; margin-bottom: 28px; line-height: 1.6; }
-.modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-
-/* ── EDITOR PAGE ── */
-.editor-wrap {
-  display: grid;
-  grid-template-columns: 220px 1fr 200px;
-  gap: 0;
-  height: calc(100vh - 68px);
-  margin: -32px;
-  overflow: hidden;
-}
-
-.ed-sidebar {
-  background: var(--white);
-  border-right: 1px solid var(--border);
-  overflow-y: auto;
-  display: flex; flex-direction: column;
-}
-.ed-sidebar::-webkit-scrollbar { width: 4px; }
-.ed-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-.sidebar-section {
-  padding: 14px;
-  border-bottom: 1px solid var(--border);
-}
-.ss-label {
-  font-size: 0.7rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 1px;
-  color: var(--text2); margin-bottom: 10px;
-}
-
-.tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-
-.t-btn {
-  padding: 9px 6px;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  color: var(--text2);
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.78rem; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-  text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-}
-.t-btn .ti { font-size: 1.15rem; }
-.t-btn:hover, .t-btn.active {
-  background: #eef1ff;
-  border-color: var(--blue);
-  color: var(--blue);
-}
-
-.sym-grid { display: flex; flex-wrap: wrap; gap: 4px; }
-.sym-btn {
-  width: 34px; height: 34px;
-  background: var(--bg); border: 1.5px solid var(--border);
-  border-radius: 8px; cursor: pointer; font-size: 1rem;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.sym-btn:hover { background: #eef1ff; border-color: var(--blue); }
-
-/* color swatches */
-.swatch-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-.swatch {
-  width: 22px; height: 22px; border-radius: 6px;
-  cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
-}
-.swatch.sel { border-color: var(--text); transform: scale(1.2); }
-.swatch-transparent {
-  background: linear-gradient(45deg, #ccc 25%, white 25%, white 75%, #ccc 75%);
-  background-size: 10px 10px;
-}
-
-.prop-row2 {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
-}
-.pr-label { font-size: 0.78rem; color: var(--text2); flex-shrink: 0; width: 56px; }
-input[type="range"] {
-  flex: 1; accent-color: var(--blue); height: 4px; cursor: pointer;
-}
-.pr-val { font-size: 0.78rem; min-width: 30px; text-align: right; font-weight: 600; }
-
-input[type="color"] {
-  width: 32px; height: 32px;
-  border: 1.5px solid var(--border); border-radius: 8px;
-  padding: 2px; background: none; cursor: pointer;
-}
-
-.font-select {
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 9px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.82rem;
-  width: 100%;
-  margin-bottom: 7px;
-}
-
-.style-btns { display: flex; gap: 4px; margin-bottom: 7px; }
-.st-btn {
-  flex: 1; padding: 6px;
-  background: var(--bg); border: 1.5px solid var(--border);
-  border-radius: 8px; cursor: pointer; font-size: 0.85rem;
-  text-align: center; transition: all 0.15s; font-family: serif;
-}
-.st-btn:hover, .st-btn.on { background: #eef1ff; border-color: var(--blue); color: var(--blue); }
-
-/* Canvas zone */
-.ed-canvas-zone {
-  display: flex; flex-direction: column;
-  background: #e8ecf5;
-  overflow: hidden;
-}
-.ed-toolbar {
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 14px;
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-}
-.tb-btn {
-  padding: 6px 12px; border: 1.5px solid var(--border);
-  background: var(--bg); border-radius: 8px;
-  font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 600;
-  color: var(--text2); cursor: pointer; transition: all 0.15s;
-  display: flex; align-items: center; gap: 5px;
-}
-.tb-btn:hover { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
-.tb-sep { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
-.tb-btn.tb-export { background: var(--blue); color: white; border-color: var(--blue); }
-.tb-btn.tb-export:hover { background: #3451d1; }
-
-.canvas-scroll {
-  flex: 1; overflow: auto;
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: 28px;
-}
-.canvas-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.canvas-scroll::-webkit-scrollbar-thumb { background: #c0c8e0; border-radius: 4px; }
-
-/* Properties panel */
-.ed-props {
-  background: var(--white);
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
-  padding: 14px;
-}
-.ed-props::-webkit-scrollbar { width: 4px; }
-.ed-props::-webkit-scrollbar-thumb { background: var(--border); }
-
-.no-sel {
-  text-align: center; padding: 24px 12px;
-  color: var(--text2); font-size: 0.82rem; line-height: 1.6;
-}
-.no-sel-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
-
-.prop-input {
-  background: var(--bg); border: 1.5px solid var(--border);
-  color: var(--text); padding: 6px 10px;
-  border-radius: 9px; font-family: 'Outfit', sans-serif;
-  font-size: 0.82rem; width: 70px;
-}
-.prop-action {
-  width: 100%; padding: 8px; background: var(--bg);
-  border: 1.5px solid var(--border); border-radius: 9px;
-  font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 600;
-  color: var(--text2); cursor: pointer; transition: all 0.15s;
-  margin-bottom: 5px; text-align: center;
-}
-.prop-action:hover { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
-.prop-del { border-color: #fac5c8; color: var(--red); background: #fde8e8; }
-.prop-del:hover { background: #fac5c8; }
-
-/* Notification */
-.toast {
-  position: fixed; bottom: 24px; right: 24px;
-  background: var(--text); color: white;
-  border-radius: 14px; padding: 14px 20px;
-  font-size: 0.88rem; font-weight: 600;
-  z-index: 99999;
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-  animation: toastIn 0.3s ease;
-  max-width: 320px;
-}
-.toast.green { background: var(--green); }
-.toast.red { background: var(--red); }
-@keyframes toastIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-
-/* import zone in editor */
-.import-zone {
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.8rem;
-  color: var(--text2);
-  font-weight: 600;
-  margin: 8px 0;
-}
-.import-zone:hover { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
-
-.page-preset-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.pp-btn {
-  padding: 7px; background: var(--bg); border: 1.5px solid var(--border);
-  border-radius: 8px; font-size: 0.78rem; font-weight: 700; color: var(--text2);
-  cursor: pointer; text-align: center; transition: all 0.15s;
-}
-.pp-btn:hover, .pp-btn.active { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
+/* ══ EDITOR ══ */
+.ed-layout{display:grid;grid-template-columns:210px 1fr 196px;height:calc(100vh - 64px - 45px);}
+.ed-side{background:var(--white);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+.ed-side::-webkit-scrollbar{width:3px;} .ed-side::-webkit-scrollbar-thumb{background:var(--border);}
+.ed-sec{padding:12px;border-bottom:1px solid var(--border);}
+.ed-lbl{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:9px;}
+.tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.t-btn{padding:8px 4px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.t-btn .ti{font-size:1.05rem;}
+.t-btn:hover,.t-btn.active{background:#eef1ff;border-color:var(--blue);color:var(--blue);}
+.sym-grid{display:flex;flex-wrap:wrap;gap:4px;}
+.sym-btn{width:32px;height:32px;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.sym-btn:hover{background:#eef1ff;border-color:var(--blue);}
+.sw-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
+.sw{width:20px;height:20px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:all .12s;}
+.sw.sel{border-color:var(--text);transform:scale(1.2);}
+.sw-tr{background:repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0/10px 10px;}
+input[type="color"]{width:30px;height:30px;border:1.5px solid var(--border);border-radius:7px;padding:2px;background:none;cursor:pointer;}
+.pr2{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+.pr2-lbl{font-size:.75rem;color:var(--text2);flex-shrink:0;width:52px;}
+input[type="range"]{flex:1;accent-color:var(--blue);height:3px;cursor:pointer;}
+.pr2-val{font-size:.75rem;min-width:26px;text-align:right;font-weight:600;}
+.font-sel{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:5px 8px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:.8rem;width:100%;margin-bottom:6px;}
+.style-row{display:flex;gap:3px;margin-bottom:6px;}
+.sty-btn{flex:1;padding:5px;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:.83rem;text-align:center;transition:all .12s;font-family:serif;}
+.sty-btn:hover,.sty-btn.on{background:#eef1ff;border-color:var(--blue);color:var(--blue);}
+.pg-presets{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;}
+.pg-btn{padding:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;font-size:.75rem;font-weight:700;color:var(--text2);cursor:pointer;text-align:center;transition:all .12s;}
+.pg-btn:hover,.pg-btn.active{border-color:var(--blue);color:var(--blue);background:#eef1ff;}
+.import-drop{border:2px dashed var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;font-size:.77rem;color:var(--text2);font-weight:600;transition:all .15s;}
+.import-drop:hover{border-color:var(--blue);color:var(--blue);background:#eef1ff;}
+.ed-center{display:flex;flex-direction:column;background:#dde3f5;overflow:hidden;}
+.ed-toolbar{background:var(--white);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;}
+.tb{padding:5px 10px;border:1.5px solid var(--border);background:var(--bg);border-radius:7px;font-family:'Outfit',sans-serif;font-size:.78rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px;}
+.tb:hover{border-color:var(--blue);color:var(--blue);background:#eef1ff;}
+.tb.tb-exp{background:var(--blue);color:white;border-color:var(--blue);} .tb.tb-exp:hover{background:#3451d1;}
+.tb-sep{width:1px;height:20px;background:var(--border);margin:0 2px;}
+.canvas-wrap{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+.canvas-wrap::-webkit-scrollbar{width:7px;height:7px;} .canvas-wrap::-webkit-scrollbar-thumb{background:#b0bcdc;border-radius:4px;}
+.ed-props{background:var(--white);border-left:1px solid var(--border);overflow-y:auto;padding:12px;}
+.ed-props::-webkit-scrollbar{width:3px;} .ed-props::-webkit-scrollbar-thumb{background:var(--border);}
+.no-sel{text-align:center;padding:20px 8px;color:var(--text2);font-size:.8rem;line-height:1.6;}
+.no-sel-icon{font-size:1.8rem;display:block;margin-bottom:7px;}
+.prop-in{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:5px 8px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:.8rem;width:62px;}
+.pa{width:100%;padding:7px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif;font-size:.78rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .12s;margin-bottom:4px;text-align:center;}
+.pa:hover{border-color:var(--blue);color:var(--blue);background:#eef1ff;}
+.pa-del{border-color:#fecaca;color:var(--red);background:#fee2e2;} .pa-del:hover{background:#fecaca;}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="logo">
     <div class="logo-icon">📄</div>
     <span class="logo-text">PDF Studio</span>
   </div>
   <nav class="nav">
-    <button class="nav-tab active" onclick="goPage('convert')">📂 Convertir & Fusionner</button>
-    <button class="nav-tab" onclick="goPage('editor')">✏️ Éditeur</button>
+    <button class="nav-tab active" id="tab-convert" onclick="goPage('convert')">📂 Convertir &amp; Fusionner</button>
+    <button class="nav-tab" id="tab-editor" onclick="goPage('editor')">✏️ Éditeur</button>
   </nav>
-  <div style="width:180px"></div>
+  <div style="width:160px;text-align:right;font-size:.78rem;color:var(--text2);font-weight:600;">V2.1</div>
 </header>
 
-<!-- ══════════ PAGE CONVERTER ══════════ -->
+<div class="main">
+
+<!-- ═══ PAGE CONVERT ═══ -->
 <div class="page active" id="page-convert">
 
-  <div class="section-title">📂 Vos fichiers → PDF</div>
-  <p class="section-sub">Glissez vos fichiers, réorganisez-les dans l'ordre voulu, puis convertissez ou fusionnez en un seul PDF.</p>
+  <div class="page-title">📂 Vos fichiers → PDF</div>
+  <p class="page-sub">Déposez vos fichiers, réorganisez-les par glisser-déposer, puis convertissez ou fusionnez en un seul PDF.</p>
 
-  <!-- INPUT FILE hors dropzone pour eviter les conflits de clic -->
-  <input type="file" id="fileIn" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.txt,.html,.htm">
-
-  <!-- DROP ZONE -->
   <div class="dropzone" id="dropzone">
-    <span class="dz-emoji">📥</span>
-    <div class="dz-title">Déposez vos fichiers ici</div>
-    <div class="dz-sub">Ou cliquez n'importe où ici pour parcourir vos fichiers</div>
-    <div class="format-pills">
-      <span class="pill pill-img">JPG</span>
-      <span class="pill pill-img">PNG</span>
-      <span class="pill pill-img">WebP</span>
-      <span class="pill pill-img">HEIC</span>
-      <span class="pill pill-img">GIF</span>
-      <span class="pill pill-doc">DOC/DOCX</span>
-      <span class="pill pill-pdf">PDF</span>
-      <span class="pill pill-txt">TXT</span>
-      <span class="pill pill-txt">HTML</span>
+    <span class="dz-icon">📥</span>
+    <div class="dz-title">Glissez vos fichiers ici</div>
+    <div class="dz-sub">ou cliquez pour parcourir votre ordinateur</div>
+    <div class="fmt-pills">
+      <span class="pill p-img">JPG</span><span class="pill p-img">PNG</span>
+      <span class="pill p-img">WebP</span><span class="pill p-img">HEIC</span>
+      <span class="pill p-img">GIF</span><span class="pill p-doc">DOCX</span>
+      <span class="pill p-pdf">PDF</span><span class="pill p-txt">TXT</span>
+      <span class="pill p-txt">HTML</span>
     </div>
-    <button class="btn btn-blue" id="chooseBtn">＋ Choisir des fichiers</button>
+    <button class="btn btn-blue" id="btnChoose" type="button">＋ Choisir des fichiers</button>
   </div>
 
-  <!-- OPTIONS -->
+  <!-- input OUTSIDE dropzone -->
+  <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.html,.htm" style="display:none">
+
   <div class="options-row">
     <div class="opt-card">
-      <div class="opt-label">📄 Format de page</div>
+      <div class="opt-label">📄 Format</div>
       <select id="optFmt">
-        <option value="a4">A4 (210×297mm)</option>
-        <option value="a3">A3 (297×420mm)</option>
+        <option value="a4">A4 (210×297 mm)</option>
+        <option value="a3">A3 (297×420 mm)</option>
         <option value="letter">Letter (US)</option>
         <option value="legal">Legal (US)</option>
       </select>
@@ -673,399 +231,381 @@ input[type="color"] {
     </div>
     <div class="opt-card">
       <div class="opt-label">🔲 Marges (mm)</div>
-      <input type="number" id="optMargin" value="10" min="0" max="50" style="width:100%">
+      <input type="number" id="optMargin" value="10" min="0" max="50">
     </div>
     <div class="opt-card">
-      <div class="opt-label">📦 Fusion en 1 PDF</div>
+      <div class="opt-label">🔗 Fusionner</div>
       <div class="toggle-row">
-        <button class="toggle on" id="mergeToggle" onclick="toggleMerge()"></button>
-        <span class="toggle-label" id="mergeLabel">Activée</span>
+        <button class="toggle on" id="mergeToggle" type="button"></button>
+        <span class="toggle-lbl" id="mergeLbl">Activé</span>
       </div>
     </div>
   </div>
 
-  <!-- FILE LIST -->
-  <div class="files-header">
-    <div class="files-label">
-      Fichiers
-      <span class="count-badge" id="countBadge">0</span>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span class="hint-text">⠿ Glissez les cartes pour changer l'ordre</span>
-      <button class="btn btn-ghost btn-sm" onclick="clearAll()">Tout effacer</button>
+  <div class="files-hdr">
+    <div class="files-hdr-left">Fichiers <span class="cnt-badge" id="cntBadge">0</span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="drag-hint">⠿ Glissez les cartes pour réordonner</span>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="clearAll()">Tout effacer</button>
     </div>
   </div>
 
   <div id="fileCards">
-    <div class="empty-state" id="emptyState">
-      <span class="empty-state-icon">📋</span>
-      Aucun fichier ajouté.<br>Glissez des fichiers ou cliquez sur la zone ci-dessus.
-    </div>
+    <div class="empty-state"><span class="empty-icon">📋</span>Aucun fichier.<br>Utilisez la zone ci-dessus pour en ajouter.</div>
   </div>
 
-  <!-- PROGRESS -->
-  <div class="progress-wrap" id="progressWrap">
-    <div class="progress-label">⚙️ <span id="progressLabel">Conversion en cours...</span></div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="progress-step" id="progressStep"></div>
+  <div class="prog-wrap" id="progWrap">
+    <div class="prog-label">⚙️ <span id="progLbl">En cours…</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-step" id="progStep"></div>
   </div>
 
-  <!-- ACTIONS -->
   <div class="actions-bar">
-    <button class="btn btn-blue" onclick="runConvert()" id="convertBtn">
-      🔄 Convertir en PDF
-    </button>
-    <button class="btn btn-green" onclick="downloadAll()" id="dlBtn" style="display:none">
-      ⬇️ Télécharger
-    </button>
-    <div class="actions-bar-sep"></div>
-    <button class="btn btn-ghost btn-sm" id="addMoreBtn">＋ Ajouter des fichiers</button>
+    <button class="btn btn-blue" type="button" onclick="runConvert()">🔄 Convertir en PDF</button>
+    <button class="btn btn-green" type="button" id="btnDl" style="display:none" onclick="downloadAll()">⬇️ Télécharger</button>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost btn-sm" type="button" id="btnAddMore">＋ Ajouter des fichiers</button>
   </div>
-</div>
 
-<!-- ══════════ PAGE EDITOR ══════════ -->
+</div><!-- /page-convert -->
+
+
+<!-- ═══ PAGE EDITOR ═══ -->
 <div class="page" id="page-editor">
-  <div class="editor-wrap">
+<div class="ed-layout">
 
-    <!-- LEFT: tools -->
-    <div class="ed-sidebar">
-
-      <div class="sidebar-section">
-        <div class="ss-label">Outils</div>
-        <div class="tools-grid">
-          <button class="t-btn active" id="tb-select" onclick="setTool('select')"><span class="ti">🖱️</span>Sélection</button>
-          <button class="t-btn" id="tb-text" onclick="setTool('text')"><span class="ti" style="font-weight:900;font-size:1.3rem">T</span>Texte</button>
-          <button class="t-btn" id="tb-rect" onclick="setTool('rect')"><span class="ti">▭</span>Rectangle</button>
-          <button class="t-btn" id="tb-circle" onclick="setTool('circle')"><span class="ti">○</span>Cercle</button>
-          <button class="t-btn" id="tb-line" onclick="setTool('line')"><span class="ti">╱</span>Ligne</button>
-          <button class="t-btn" id="tb-arrow" onclick="addArrow()"><span class="ti">➜</span>Flèche</button>
-          <button class="t-btn" id="tb-draw" onclick="setTool('draw')"><span class="ti">✏️</span>Dessin libre</button>
-          <button class="t-btn" id="tb-erase" onclick="setTool('erase')"><span class="ti">🧹</span>Gomme</button>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="ss-label">Symboles</div>
-        <div class="sym-grid">
-          <button class="sym-btn" onclick="addSym('✓')">✓</button>
-          <button class="sym-btn" onclick="addSym('✗')">✗</button>
-          <button class="sym-btn" onclick="addSym('★')">★</button>
-          <button class="sym-btn" onclick="addSym('!')">!</button>
-          <button class="sym-btn" onclick="addSym('?')">?</button>
-          <button class="sym-btn" onclick="addSym('➜')">➜</button>
-          <button class="sym-btn" onclick="addSym('⬆')">⬆</button>
-          <button class="sym-btn" onclick="addSym('⬇')">⬇</button>
-          <button class="sym-btn" onclick="addSym('©')">©</button>
-          <button class="sym-btn" onclick="addSym('®')">®</button>
-          <button class="sym-btn" onclick="addSym('™')">™</button>
-          <button class="sym-btn" onclick="addSym('📌')">📌</button>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="ss-label">Couleur de remplissage</div>
-        <div class="swatch-row" id="fillSwatches">
-          <div class="swatch sel" style="background:#4361ee" data-c="#4361ee" onclick="pickFill(this)"></div>
-          <div class="swatch" style="background:#e63946" data-c="#e63946" onclick="pickFill(this)"></div>
-          <div class="swatch" style="background:#2ec4b6" data-c="#2ec4b6" onclick="pickFill(this)"></div>
-          <div class="swatch" style="background:#ff9f1c" data-c="#ff9f1c" onclick="pickFill(this)"></div>
-          <div class="swatch" style="background:#7b5ea7" data-c="#7b5ea7" onclick="pickFill(this)"></div>
-          <div class="swatch" style="background:#000000" data-c="#000000" onclick="pickFill(this)"></div>
-          <div class="swatch" style="background:#ffffff;border:1.5px solid #ddd" data-c="#ffffff" onclick="pickFill(this)"></div>
-          <div class="swatch swatch-transparent" data-c="transparent" onclick="pickFill(this)" title="Transparent"></div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="color" id="fillPicker" value="#4361ee" onchange="setFill(this.value)">
-          <span style="font-size:0.78rem;color:var(--text2)">Personnalisée</span>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="ss-label">Couleur du contour</div>
-        <div class="swatch-row" id="strokeSwatches">
-          <div class="swatch sel" style="background:#1a1d2e" data-c="#1a1d2e" onclick="pickStroke(this)"></div>
-          <div class="swatch" style="background:#4361ee" data-c="#4361ee" onclick="pickStroke(this)"></div>
-          <div class="swatch" style="background:#e63946" data-c="#e63946" onclick="pickStroke(this)"></div>
-          <div class="swatch" style="background:#ffffff;border:1.5px solid #ddd" data-c="#ffffff" onclick="pickStroke(this)"></div>
-          <div class="swatch swatch-transparent" data-c="transparent" onclick="pickStroke(this)" title="Aucun"></div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="color" id="strokePicker" value="#1a1d2e" onchange="setStroke(this.value)">
-          <span style="font-size:0.78rem;color:var(--text2)">Personnalisée</span>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="ss-label">Épaisseur & opacité</div>
-        <div class="prop-row2">
-          <span class="pr-label">Contour</span>
-          <input type="range" id="swInput" min="0" max="20" value="2" oninput="updateSW(this.value)">
-          <span class="pr-val" id="swVal">2</span>
-        </div>
-        <div class="prop-row2">
-          <span class="pr-label">Opacité</span>
-          <input type="range" id="opInput" min="0.05" max="1" step="0.05" value="1" oninput="updateOp(this.value)">
-          <span class="pr-val" id="opVal">100%</span>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="ss-label">Texte</div>
-        <select class="font-select" id="fontSel" onchange="applyFont()">
-          <option>Arial</option><option>Times New Roman</option>
-          <option>Courier New</option><option>Georgia</option>
-          <option>Verdana</option><option>Impact</option>
-        </select>
-        <div class="prop-row2">
-          <span class="pr-label">Taille</span>
-          <input type="range" id="fsInput" min="8" max="120" value="24" oninput="document.getElementById('fsVal').textContent=this.value;applyFont()">
-          <span class="pr-val" id="fsVal">24</span>
-        </div>
-        <div class="style-btns">
-          <button class="st-btn" id="boldBtn" onclick="toggleBold()"><strong>G</strong></button>
-          <button class="st-btn" id="italicBtn" onclick="toggleItalic()"><em>I</em></button>
-          <button class="st-btn" id="underBtn" onclick="toggleUnder()"><u>S</u></button>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="ss-label">Page</div>
-        <div class="page-preset-btns">
-          <div class="pp-btn active" onclick="setPage('a4',this)">A4</div>
-          <div class="pp-btn" onclick="setPage('a3',this)">A3</div>
-          <div class="pp-btn" onclick="setPage('letter',this)">Letter</div>
-          <div class="pp-btn" onclick="setPage('16:9',this)">16:9</div>
-        </div>
-        <div class="import-zone" onclick="document.getElementById('edImport').click()">
-          🖼️ Importer image / PDF
-        </div>
-        <input type="file" id="edImport" style="display:none" accept="image/*,.pdf" onchange="importDoc(this.files[0])">
+  <!-- LEFT -->
+  <div class="ed-side">
+    <div class="ed-sec">
+      <div class="ed-lbl">Outils</div>
+      <div class="tools-grid">
+        <button class="t-btn active" id="tb-select" type="button" onclick="setTool('select')"><span class="ti">🖱️</span>Sélection</button>
+        <button class="t-btn" id="tb-text"   type="button" onclick="setTool('text')"><span class="ti" style="font-weight:900;font-size:1.1rem">T</span>Texte</button>
+        <button class="t-btn" id="tb-rect"   type="button" onclick="setTool('rect')"><span class="ti">▭</span>Rectangle</button>
+        <button class="t-btn" id="tb-circle" type="button" onclick="setTool('circle')"><span class="ti">○</span>Cercle</button>
+        <button class="t-btn" id="tb-line"   type="button" onclick="setTool('line')"><span class="ti">╱</span>Ligne</button>
+        <button class="t-btn" id="tb-arrow"  type="button" onclick="addArrow()"><span class="ti">➜</span>Flèche</button>
+        <button class="t-btn" id="tb-draw"   type="button" onclick="setTool('draw')"><span class="ti">✏️</span>Dessin libre</button>
+        <button class="t-btn" id="tb-erase"  type="button" onclick="setTool('erase')"><span class="ti">🧹</span>Gomme</button>
       </div>
     </div>
-
-    <!-- CENTER: canvas -->
-    <div class="ed-canvas-zone">
-      <div class="ed-toolbar">
-        <button class="tb-btn" onclick="undoEd()">↩ Annuler</button>
-        <button class="tb-btn" onclick="redoEd()">↪ Rétablir</button>
-        <div class="tb-sep"></div>
-        <button class="tb-btn" onclick="dupeSel()">⧉ Dupliquer</button>
-        <button class="tb-btn" onclick="delSel()">🗑 Supprimer</button>
-        <button class="tb-btn" onclick="canvas.bringForward(canvas.getActiveObject());canvas.renderAll()">↑ Avant</button>
-        <button class="tb-btn" onclick="canvas.sendBackwards(canvas.getActiveObject());canvas.renderAll()">↓ Arrière</button>
-        <div class="tb-sep"></div>
-        <button class="tb-btn" onclick="clearEd()">✕ Effacer tout</button>
-        <div class="tb-sep"></div>
-        <button class="tb-btn tb-export" onclick="exportPDF()">⬇ Exporter PDF</button>
-        <button class="tb-btn" onclick="exportPNG()" style="color:var(--blue)">⬇ PNG</button>
-      </div>
-      <div class="canvas-scroll">
-        <canvas id="mainCanvas"></canvas>
+    <div class="ed-sec">
+      <div class="ed-lbl">Symboles</div>
+      <div class="sym-grid">
+        <button class="sym-btn" type="button" onclick="addSym('✓')">✓</button>
+        <button class="sym-btn" type="button" onclick="addSym('✗')">✗</button>
+        <button class="sym-btn" type="button" onclick="addSym('★')">★</button>
+        <button class="sym-btn" type="button" onclick="addSym('!')">!</button>
+        <button class="sym-btn" type="button" onclick="addSym('?')">?</button>
+        <button class="sym-btn" type="button" onclick="addSym('➜')">➜</button>
+        <button class="sym-btn" type="button" onclick="addSym('⬆')">⬆</button>
+        <button class="sym-btn" type="button" onclick="addSym('⬇')">⬇</button>
+        <button class="sym-btn" type="button" onclick="addSym('©')">©</button>
+        <button class="sym-btn" type="button" onclick="addSym('®')">®</button>
+        <button class="sym-btn" type="button" onclick="addSym('™')">™</button>
+        <button class="sym-btn" type="button" onclick="addSym('📌')">📌</button>
       </div>
     </div>
-
-    <!-- RIGHT: properties -->
-    <div class="ed-props">
-      <div class="ss-label">Propriétés</div>
-      <div class="no-sel" id="noSelMsg">
-        <span class="no-sel-icon">👆</span>
-        Cliquez sur un objet pour voir et modifier ses propriétés.
+    <div class="ed-sec">
+      <div class="ed-lbl">Couleur remplissage</div>
+      <div class="sw-row" id="fillSw">
+        <div class="sw sel" style="background:#4361ee" data-c="#4361ee" onclick="pickFill(this)"></div>
+        <div class="sw" style="background:#e63946" data-c="#e63946" onclick="pickFill(this)"></div>
+        <div class="sw" style="background:#2ec4b6" data-c="#2ec4b6" onclick="pickFill(this)"></div>
+        <div class="sw" style="background:#ff9f1c" data-c="#ff9f1c" onclick="pickFill(this)"></div>
+        <div class="sw" style="background:#7b5ea7" data-c="#7b5ea7" onclick="pickFill(this)"></div>
+        <div class="sw" style="background:#000" data-c="#000000" onclick="pickFill(this)"></div>
+        <div class="sw" style="background:#fff;border:1.5px solid #ddd" data-c="#ffffff" onclick="pickFill(this)"></div>
+        <div class="sw sw-tr" data-c="transparent" onclick="pickFill(this)" title="Transparent"></div>
       </div>
-      <div id="selProps" style="display:none">
-        <div class="prop-row2" style="margin-bottom:8px"><span class="pr-label" style="width:auto">X</span><input class="prop-input" type="number" id="pX" oninput="moveSel()"></div>
-        <div class="prop-row2" style="margin-bottom:8px"><span class="pr-label" style="width:auto">Y</span><input class="prop-input" type="number" id="pY" oninput="moveSel()"></div>
-        <div class="prop-row2" style="margin-bottom:8px"><span class="pr-label" style="width:auto">L</span><input class="prop-input" type="number" id="pW" oninput="sizeSel()"></div>
-        <div class="prop-row2" style="margin-bottom:14px"><span class="pr-label" style="width:auto">H</span><input class="prop-input" type="number" id="pH" oninput="sizeSel()"></div>
-        <div class="prop-row2">
-          <span class="pr-label" style="width:auto">Rotation</span>
-          <input type="range" id="pRot" min="-180" max="180" value="0" oninput="document.getElementById('pRotV').textContent=this.value+'°';rotSel()">
-          <span class="pr-val" id="pRotV">0°</span>
-        </div>
-        <div style="border-top:1px solid var(--border);margin:14px 0;padding-top:14px">
-          <button class="prop-action" onclick="centerSel('h')">↔ Centrer horiz.</button>
-          <button class="prop-action" onclick="centerSel('v')">↕ Centrer vert.</button>
-          <button class="prop-action prop-del" onclick="delSel()">🗑 Supprimer</button>
-        </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input type="color" id="fillPicker" value="#4361ee" oninput="setFillC(this.value)">
+        <span style="font-size:.75rem;color:var(--text2)">Personnalisée</span>
       </div>
     </div>
+    <div class="ed-sec">
+      <div class="ed-lbl">Couleur contour</div>
+      <div class="sw-row" id="strokeSw">
+        <div class="sw sel" style="background:#1a1d2e" data-c="#1a1d2e" onclick="pickStroke(this)"></div>
+        <div class="sw" style="background:#4361ee" data-c="#4361ee" onclick="pickStroke(this)"></div>
+        <div class="sw" style="background:#e63946" data-c="#e63946" onclick="pickStroke(this)"></div>
+        <div class="sw" style="background:#fff;border:1.5px solid #ddd" data-c="#ffffff" onclick="pickStroke(this)"></div>
+        <div class="sw sw-tr" data-c="transparent" onclick="pickStroke(this)" title="Aucun"></div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input type="color" id="strokePicker" value="#1a1d2e" oninput="setStrokeC(this.value)">
+        <span style="font-size:.75rem;color:var(--text2)">Personnalisée</span>
+      </div>
+    </div>
+    <div class="ed-sec">
+      <div class="ed-lbl">Épaisseur &amp; Opacité</div>
+      <div class="pr2"><span class="pr2-lbl">Contour</span><input type="range" id="swRange" min="0" max="20" value="2" oninput="updateSW(this.value)"><span class="pr2-val" id="swVal">2</span></div>
+      <div class="pr2"><span class="pr2-lbl">Opacité</span><input type="range" id="opRange" min="0.05" max="1" step="0.05" value="1" oninput="updateOp(this.value)"><span class="pr2-val" id="opVal">100%</span></div>
+    </div>
+    <div class="ed-sec">
+      <div class="ed-lbl">Texte</div>
+      <select class="font-sel" id="fontSel" onchange="applyFont()">
+        <option>Arial</option><option>Times New Roman</option><option>Courier New</option>
+        <option>Georgia</option><option>Verdana</option><option>Impact</option>
+      </select>
+      <div class="pr2"><span class="pr2-lbl">Taille</span><input type="range" id="fsRange" min="8" max="120" value="24" oninput="document.getElementById('fsVal').textContent=this.value;applyFont()"><span class="pr2-val" id="fsVal">24</span></div>
+      <div class="style-row">
+        <button class="sty-btn" type="button" id="boldBtn" onclick="toggleBold()"><strong>G</strong></button>
+        <button class="sty-btn" type="button" id="italicBtn" onclick="toggleItalic()"><em>I</em></button>
+        <button class="sty-btn" type="button" id="underBtn" onclick="toggleUnder()"><u>S</u></button>
+      </div>
+    </div>
+    <div class="ed-sec">
+      <div class="ed-lbl">Format de page</div>
+      <div class="pg-presets">
+        <div class="pg-btn active" onclick="setPageSize('a4',this)">A4</div>
+        <div class="pg-btn" onclick="setPageSize('a3',this)">A3</div>
+        <div class="pg-btn" onclick="setPageSize('letter',this)">Letter</div>
+        <div class="pg-btn" onclick="setPageSize('16:9',this)">16:9</div>
+      </div>
+      <div class="import-drop" onclick="document.getElementById('edImport').click()">🖼️ Importer image ou PDF</div>
+      <input type="file" id="edImport" style="display:none" accept="image/*,.pdf">
+    </div>
+  </div><!-- /ed-side -->
 
+  <!-- CENTER -->
+  <div class="ed-center">
+    <div class="ed-toolbar">
+      <button class="tb" type="button" onclick="undoEd()">↩ Annuler</button>
+      <button class="tb" type="button" onclick="redoEd()">↪ Rétablir</button>
+      <div class="tb-sep"></div>
+      <button class="tb" type="button" onclick="dupeSel()">⧉ Dupliquer</button>
+      <button class="tb" type="button" onclick="delSel()">🗑 Supprimer</button>
+      <button class="tb" type="button" onclick="fwdSel()">↑ Avant</button>
+      <button class="tb" type="button" onclick="bwdSel()">↓ Arrière</button>
+      <div class="tb-sep"></div>
+      <button class="tb" type="button" onclick="clearEd()" style="color:var(--red)">✕ Effacer tout</button>
+      <div class="tb-sep"></div>
+      <button class="tb tb-exp" type="button" onclick="exportPDF()">⬇ Exporter PDF</button>
+      <button class="tb" type="button" onclick="exportPNG()" style="color:var(--blue)">⬇ PNG</button>
+    </div>
+    <div class="canvas-wrap"><canvas id="mainCanvas"></canvas></div>
   </div>
-</div>
+
+  <!-- RIGHT -->
+  <div class="ed-props">
+    <div class="ed-lbl">Propriétés</div>
+    <div class="no-sel" id="noSelMsg"><span class="no-sel-icon">👆</span>Sélectionnez un objet pour modifier ses propriétés.</div>
+    <div id="selProps" style="display:none">
+      <div class="pr2" style="margin-bottom:7px"><span class="pr2-lbl" style="width:auto">X</span><input class="prop-in" type="number" id="pX" oninput="moveSel()"></div>
+      <div class="pr2" style="margin-bottom:7px"><span class="pr2-lbl" style="width:auto">Y</span><input class="prop-in" type="number" id="pY" oninput="moveSel()"></div>
+      <div class="pr2" style="margin-bottom:7px"><span class="pr2-lbl" style="width:auto">L</span><input class="prop-in" type="number" id="pW" oninput="sizeSel()"></div>
+      <div class="pr2" style="margin-bottom:12px"><span class="pr2-lbl" style="width:auto">H</span><input class="prop-in" type="number" id="pH" oninput="sizeSel()"></div>
+      <div class="pr2"><span class="pr2-lbl" style="width:auto">Rotation</span><input type="range" id="pRot" min="-180" max="180" value="0" oninput="document.getElementById('pRotV').textContent=this.value+'°';rotSel()"><span class="pr2-val" id="pRotV">0°</span></div>
+      <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
+        <button class="pa" type="button" onclick="centerSel('h')">↔ Centrer horiz.</button>
+        <button class="pa" type="button" onclick="centerSel('v')">↕ Centrer vert.</button>
+        <button class="pa pa-del" type="button" onclick="delSel()">🗑 Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /ed-layout -->
+</div><!-- /page-editor -->
+
+</div><!-- /main -->
+
+<footer>© 2026 Florent Amendola — PDF Studio V2.1</footer>
 
 <!-- MODAL -->
-<div class="modal-overlay" id="modal">
+<div class="overlay" id="overlay">
   <div class="modal">
     <span class="modal-icon" id="modalIcon">🎉</span>
-    <div class="modal-title" id="modalTitle">Succès !</div>
+    <div class="modal-title" id="modalTitle">Conversion réussie !</div>
     <p class="modal-sub" id="modalSub"></p>
     <div class="modal-btns">
-      <button class="btn btn-green" id="modalDl" onclick="downloadAll()">⬇️ Télécharger</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+      <button class="btn btn-green" type="button" onclick="downloadAll()">⬇️ Télécharger</button>
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('overlay').classList.remove('show')">Fermer</button>
     </div>
   </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-// CONVERTER
-// ─────────────────────────────────────────────
+'use strict';
+
+// ── PDF.js ──
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-let files = [];
-let fid = 0;
-let mergeOn = true;
-let convertedBlobs = [];
-let dragSrcIdx = null;
+// ══════════════════════════════════════
+// CONVERTER STATE
+// ══════════════════════════════════════
+var fileList    = [];
+var nextId      = 0;
+var mergeOn     = true;
+var resultBlobs = [];
+var dragSrc     = null;
 
-// Init all file/drop events after DOM ready
-window.addEventListener('load', function() {
-  const fileIn = document.getElementById('fileIn');
-  const dz = document.getElementById('dropzone');
-  const chooseBtn = document.getElementById('chooseBtn');
-  const addMoreBtn = document.getElementById('addMoreBtn');
+// ── Bootstrap ──
+window.addEventListener('load', function () {
 
-  fileIn.addEventListener('change', function() {
+  // -- File input --
+  var inp = document.getElementById('fileInput');
+
+  function openDialog() { inp.click(); }
+
+  inp.addEventListener('change', function () {
     if (this.files && this.files.length > 0) {
       addFiles(this.files);
-      this.value = '';
+      // Reset value so same file can be picked again
+      try { this.value = ''; } catch(e){}
     }
   });
 
-  chooseBtn.addEventListener('click', function(e) {
+  // -- Dropzone --
+  var dz = document.getElementById('dropzone');
+
+  // Click on dropzone (but not on the button itself — button has stopPropagation)
+  dz.addEventListener('click', function () { openDialog(); });
+
+  // The button stops propagation so it doesn't double-fire
+  document.getElementById('btnChoose').addEventListener('click', function (e) {
     e.stopPropagation();
-    fileIn.click();
+    openDialog();
   });
 
-  dz.addEventListener('click', function(e) {
-    if (e.target === chooseBtn) return;
-    fileIn.click();
+  dz.addEventListener('dragenter', function (e) { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragover',  function (e) { e.preventDefault(); });
+  dz.addEventListener('dragleave', function (e) {
+    // Only remove class if leaving the dropzone entirely
+    if (!dz.contains(e.relatedTarget)) dz.classList.remove('over');
   });
-
-  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('over'); });
-  dz.addEventListener('dragleave', function() { dz.classList.remove('over'); });
-  dz.addEventListener('drop', function(e) {
+  dz.addEventListener('drop', function (e) {
     e.preventDefault();
     dz.classList.remove('over');
-    if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addFiles(e.dataTransfer.files);
+    }
   });
 
-  if (addMoreBtn) addMoreBtn.addEventListener('click', function() { fileIn.click(); });
+  // -- Add more --
+  document.getElementById('btnAddMore').addEventListener('click', function () { openDialog(); });
 
-  // Init editor canvas
+  // -- Merge toggle --
+  document.getElementById('mergeToggle').addEventListener('click', function () {
+    mergeOn = !mergeOn;
+    this.classList.toggle('on', mergeOn);
+    document.getElementById('mergeLbl').textContent = mergeOn ? 'Activé' : 'Désactivé';
+  });
+
+  // -- Editor import --
+  document.getElementById('edImport').addEventListener('change', function () {
+    if (this.files && this.files[0]) importDoc(this.files[0]);
+    try { this.value = ''; } catch(e){}
+  });
+
+  // -- Init Fabric --
   initEditor();
 });
 
-function addFiles(list) {
-  Array.from(list).forEach(f => {
-    files.push({ id: fid++, file: f, status: 'ready', blob: null, thumbUrl: null });
+// ── Add files to list ──
+function addFiles(rawFiles) {
+  var arr = Array.prototype.slice.call(rawFiles);
+  arr.forEach(function (f) {
+    fileList.push({ id: nextId++, file: f, status: 'ready', thumbUrl: null });
   });
   renderCards();
-  updateCount();
+  updateBadge();
 }
 
 function clearAll() {
-  files = [];
-  convertedBlobs = [];
-  renderCards();
-  updateCount();
-  document.getElementById('dlBtn').style.display = 'none';
+  fileList = []; resultBlobs = [];
+  renderCards(); updateBadge();
+  document.getElementById('btnDl').style.display = 'none';
 }
 
-function updateCount() {
-  document.getElementById('countBadge').textContent = files.length;
+function updateBadge() {
+  document.getElementById('cntBadge').textContent = fileList.length;
 }
 
-function toggleMerge() {
-  mergeOn = !mergeOn;
-  const t = document.getElementById('mergeToggle');
-  t.classList.toggle('on', mergeOn);
-  document.getElementById('mergeLabel').textContent = mergeOn ? 'Activée' : 'Désactivée';
-}
-
-// ── RENDER CARDS ──
+// ── Render file cards ──
 function renderCards() {
-  const container = document.getElementById('fileCards');
-  const empty = document.getElementById('emptyState');
+  var container = document.getElementById('fileCards');
   container.innerHTML = '';
-  if (files.length === 0) {
-    container.appendChild(Object.assign(document.createElement('div'), {
-      className: 'empty-state', id: 'emptyState',
-      innerHTML: '<span class="empty-state-icon">📋</span>Aucun fichier ajouté.<br>Glissez des fichiers ou cliquez sur la zone ci-dessus.'
-    }));
+
+  if (fileList.length === 0) {
+    container.innerHTML =
+      '<div class="empty-state"><span class="empty-icon">📋</span>' +
+      'Aucun fichier.<br>Utilisez la zone ci-dessus pour en ajouter.</div>';
     return;
   }
 
-  files.forEach((f, idx) => {
-    const card = document.createElement('div');
+  fileList.forEach(function (entry, idx) {
+    var card = document.createElement('div');
     card.className = 'file-card';
     card.draggable = true;
-    card.dataset.idx = idx;
 
-    const stClass = { ready:'st-ready', converting:'st-converting', done:'st-done', error:'st-error' }[f.status] || 'st-ready';
-    const stLabel = { ready:'Prêt', converting:'...', done:'✓ Converti', error:'✗ Erreur' }[f.status] || 'Prêt';
+    var stCls = { ready:'s-ready', working:'s-working', done:'s-done', error:'s-error' }[entry.status] || 's-ready';
+    var stTxt = { ready:'Prêt', working:'⏳…', done:'✓ OK', error:'✗ Erreur' }[entry.status] || 'Prêt';
+    var ext   = entry.file.name.split('.').pop().toUpperCase();
+    var icon  = fileIcon(entry.file);
 
-    const thumbHTML = f.thumbUrl
-      ? `<img src="${f.thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`
-      : `<span style="font-size:1.6rem">${fileEmoji(f.file)}</span>`;
+    var thumbHtml = entry.thumbUrl
+      ? '<img src="' + entry.thumbUrl + '">'
+      : '<span>' + icon + '</span>';
 
-    card.innerHTML = `
-      <div class="drag-handle" title="Glisser pour réordonner">⠿</div>
-      <div class="file-card-num">${idx + 1}</div>
-      <div class="file-thumb">${thumbHTML}</div>
-      <div class="file-card-info">
-        <div class="file-card-name" title="${f.file.name}">${f.file.name}</div>
-        <div class="file-card-meta">
-          <span>${fmtSize(f.file.size)}</span>
-          <span>${fileType(f.file)}</span>
+    card.innerHTML =
+      '<div class="drag-handle" title="Glisser pour réordonner">⠿</div>' +
+      '<div class="fc-num">' + (idx + 1) + '</div>' +
+      '<div class="fc-thumb">' + thumbHtml + '</div>' +
+      '<div class="fc-info">' +
+        '<div class="fc-name" title="' + entry.file.name + '">' + entry.file.name + '</div>' +
+        '<div class="fc-meta"><span>' + fmtSize(entry.file.size) + '</span><span>' + ext + '</span></div>' +
+      '</div>' +
+      '<span class="fc-status ' + stCls + '" id="st-' + entry.id + '">' + stTxt + '</span>' +
+      '<button class="fc-del" type="button" data-id="' + entry.id + '" title="Supprimer">✕</button>';
 
-        </div>
-      </div>
-      <span class="file-card-status ${stClass}" id="st-${f.id}">${stLabel}</span>
-      <button class="card-remove" onclick="removeFile(${f.id})" title="Supprimer">✕</button>
-    `;
-
-    // DRAG EVENTS FOR REORDER
-    card.addEventListener('dragstart', e => {
-      dragSrcIdx = idx;
-      setTimeout(() => card.classList.add('dragging'), 0);
-      e.dataTransfer.effectAllowed = 'move';
+    // Delete
+    card.querySelector('.fc-del').addEventListener('click', function (e) {
+      e.stopPropagation();
+      var rid = parseInt(this.getAttribute('data-id'));
+      fileList = fileList.filter(function (x) { return x.id !== rid; });
+      renderCards(); updateBadge();
+      if (fileList.length === 0) document.getElementById('btnDl').style.display = 'none';
     });
-    card.addEventListener('dragend', () => { card.classList.remove('dragging'); });
-    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
-    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
-    card.addEventListener('drop', e => {
-      e.preventDefault();
+
+    // Drag-to-reorder
+    card.addEventListener('dragstart', function (e) {
+      dragSrc = idx;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx)); // required for Firefox
+      setTimeout(function () { card.classList.add('dragging'); }, 0);
+    });
+    card.addEventListener('dragend', function () { card.classList.remove('dragging'); });
+    card.addEventListener('dragover', function (e) { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', function () { card.classList.remove('drag-over'); });
+    card.addEventListener('drop', function (e) {
+      e.preventDefault(); e.stopPropagation();
       card.classList.remove('drag-over');
-      if (dragSrcIdx === null || dragSrcIdx === idx) return;
-      const moved = files.splice(dragSrcIdx, 1)[0];
-      files.splice(idx, 0, moved);
-      dragSrcIdx = null;
+      if (dragSrc === null || dragSrc === idx) return;
+      var moved = fileList.splice(dragSrc, 1)[0];
+      fileList.splice(idx, 0, moved);
+      dragSrc = null;
       renderCards();
     });
 
     container.appendChild(card);
 
-    // Generate thumbnail if image
-    if (f.file.type.startsWith('image/') && !f.thumbUrl) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        f.thumbUrl = e.target.result;
-        const img = card.querySelector('.file-thumb');
-        if (img) img.innerHTML = `<img src="${f.thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
-      };
-      reader.readAsDataURL(f.file);
+    // Thumbnail for images
+    if (entry.file.type.startsWith('image/') && !entry.thumbUrl) {
+      (function (ent, cardEl) {
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+          ent.thumbUrl = ev.target.result;
+          var th = cardEl.querySelector('.fc-thumb');
+          if (th) th.innerHTML = '<img src="' + ev.target.result + '">';
+        };
+        reader.readAsDataURL(ent.file);
+      }(entry, card));
     }
   });
 }
 
-function removeFile(id) {
-  files = files.filter(f => f.id !== id);
-  renderCards();
-  updateCount();
-  if (files.length === 0) document.getElementById('dlBtn').style.display = 'none';
-}
-
-function fileEmoji(f) {
+function fileIcon(f) {
   if (f.type.startsWith('image/')) return '🖼️';
   if (f.type === 'application/pdf') return '📄';
   if (f.name.match(/\.docx?$/i)) return '📝';
@@ -1073,389 +613,343 @@ function fileEmoji(f) {
   if (f.type === 'text/html') return '🌐';
   return '📁';
 }
-function fileType(f) {
-  const ext = f.name.split('.').pop().toUpperCase();
-  return ext;
-}
+
 function fmtSize(b) {
-  if (b < 1024) return b + ' B';
+  if (b < 1024) return b + ' o';
   if (b < 1048576) return (b/1024).toFixed(1) + ' Ko';
   return (b/1048576).toFixed(1) + ' Mo';
 }
 
-// ── CONVERT ──
+// ── Conversion ──
+function setStatus(id, st) {
+  var el = document.getElementById('st-' + id);
+  if (!el) return;
+  var c = { ready:'s-ready', working:'s-working', done:'s-done', error:'s-error' }[st] || 's-ready';
+  var t = { ready:'Prêt', working:'⏳…', done:'✓ OK', error:'✗ Erreur' }[st] || st;
+  el.className = 'fc-status ' + c;
+  el.textContent = t;
+}
+
+function setProgress(pct, step) {
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progStep').textContent = step || '';
+}
+
 async function runConvert() {
-  if (files.length === 0) { toast('Ajoutez d\'abord des fichiers !', 'red'); return; }
+  if (fileList.length === 0) { showToast('Ajoutez d\'abord des fichiers !', 'err'); return; }
 
-  const pw = document.getElementById('progressWrap');
-  pw.classList.add('show');
-  setProgress(0, 'Démarrage...');
-  convertedBlobs = [];
+  document.getElementById('progWrap').classList.add('show');
+  setProgress(0, 'Démarrage…');
+  resultBlobs = [];
 
-  const fmt = document.getElementById('optFmt').value;
-  const ori = document.getElementById('optOri').value;
-  const margin = parseInt(document.getElementById('optMargin').value) || 10;
+  var fmt    = document.getElementById('optFmt').value;
+  var ori    = document.getElementById('optOri').value;
+  var margin = parseInt(document.getElementById('optMargin').value) || 10;
 
-  for (let i = 0; i < files.length; i++) {
-    const f = files[i];
-    setStatus(f.id, 'converting');
-    setProgress((i / files.length) * 80, `Conversion de ${f.file.name}…`);
+  for (var i = 0; i < fileList.length; i++) {
+    var entry = fileList[i];
+    setStatus(entry.id, 'working');
+    setProgress(Math.round(i / fileList.length * 80), 'Conversion : ' + entry.file.name);
     try {
-      const blob = await toPDFBlob(f.file, fmt, ori, margin);
-      f.blob = blob;
-      f.status = 'done';
-      convertedBlobs.push({ blob, name: f.file.name.replace(/\.[^.]+$/, '') + '.pdf' });
-      setStatus(f.id, 'done');
-    } catch (e) {
-      f.status = 'error';
-      setStatus(f.id, 'error');
-      console.error(e);
+      var blob = await fileToPDF(entry.file, fmt, ori, margin);
+      entry.status = 'done';
+      resultBlobs.push({ blob: blob, name: entry.file.name.replace(/\.[^.]+$/, '') + '.pdf' });
+      setStatus(entry.id, 'done');
+    } catch (err) {
+      console.error(err);
+      entry.status = 'error';
+      setStatus(entry.id, 'error');
     }
-    renderCards();
   }
 
   setProgress(90, 'Finalisation…');
 
-  let finalBlobs = convertedBlobs;
-
-  if (mergeOn && convertedBlobs.length > 1) {
-    setProgress(95, 'Fusion des PDF…');
-    const merged = await mergePDFs(convertedBlobs.map(b => b.blob));
-    finalBlobs = [{ blob: merged, name: 'document-fusionne.pdf' }];
-    convertedBlobs = finalBlobs;
+  if (mergeOn && resultBlobs.length > 1) {
+    setProgress(95, 'Fusion…');
+    try {
+      var merged = await mergePDFs(resultBlobs.map(function (r) { return r.blob; }));
+      resultBlobs = [{ blob: merged, name: 'document-fusionne.pdf' }];
+    } catch (e) { console.error(e); }
   }
 
   setProgress(100, 'Terminé !');
-  setTimeout(() => pw.classList.remove('show'), 600);
+  setTimeout(function () { document.getElementById('progWrap').classList.remove('show'); }, 700);
 
-  const successCount = files.filter(f => f.status === 'done').length;
-  const dlBtn = document.getElementById('dlBtn');
-  dlBtn.style.display = 'flex';
-  dlBtn.textContent = mergeOn && successCount > 1
-    ? `⬇️ Télécharger le PDF fusionné`
-    : `⬇️ Télécharger ${successCount} PDF`;
+  var done = fileList.filter(function (x) { return x.status === 'done'; }).length;
+  var btnDl = document.getElementById('btnDl');
+  btnDl.style.display = 'inline-flex';
+  btnDl.textContent = (mergeOn && done > 1) ? '⬇️ PDF fusionné' : '⬇️ Télécharger ' + done + ' PDF';
 
-  // Show modal
-  const isM = mergeOn && successCount > 1;
-  document.getElementById('modalIcon').textContent = isM ? '🎊' : '🎉';
-  document.getElementById('modalTitle').textContent = isM ? 'PDF fusionné prêt !' : `${successCount} PDF prêt${successCount > 1 ? 's' : ''} !`;
-  document.getElementById('modalSub').textContent = isM
-    ? `Vos ${successCount} fichiers ont été fusionnés en un seul PDF. Cliquez pour le télécharger.`
-    : `Vos fichiers ont bien été convertis en PDF. Cliquez pour les télécharger.`;
-  document.getElementById('modal').classList.add('show');
+  var isMerge = mergeOn && done > 1;
+  document.getElementById('modalIcon').textContent  = isMerge ? '🎊' : '🎉';
+  document.getElementById('modalTitle').textContent = isMerge ? 'PDF fusionné prêt !' : done + ' PDF prêt' + (done > 1 ? 's' : '') + ' !';
+  document.getElementById('modalSub').textContent   = isMerge
+    ? 'Vos ' + done + ' fichiers ont été fusionnés en un seul PDF.'
+    : 'Vos fichiers ont bien été convertis en PDF.';
+  document.getElementById('overlay').classList.add('show');
 }
 
-function setProgress(pct, label) {
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressStep').textContent = label;
+function downloadAll() {
+  resultBlobs.forEach(function (r) {
+    var url = URL.createObjectURL(r.blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = r.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  });
+  document.getElementById('overlay').classList.remove('show');
 }
 
-function setStatus(id, status) {
-  const el = document.getElementById(`st-${id}`);
-  if (!el) return;
-  const cls = { ready:'st-ready', converting:'st-converting', done:'st-done', error:'st-error' };
-  const lbl = { ready:'Prêt', converting:'⏳ En cours…', done:'✓ Converti', error:'✗ Erreur' };
-  el.className = 'file-card-status ' + (cls[status] || 'st-ready');
-  el.textContent = lbl[status] || 'Prêt';
-}
-
-async function toPDFBlob(file, fmt, ori, margin) {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: ori, unit: 'mm', format: fmt });
-  const pw = pdf.internal.pageSize.getWidth();
-  const ph = pdf.internal.pageSize.getHeight();
-
-  if (file.type.startsWith('image/') || file.name.match(/\.(heic|heif|webp)$/i)) {
-    return await imgToPDF(file, pdf, pw, ph, margin);
-  } else if (file.type === 'application/pdf') {
-    return await pdfPassthrough(file, pdf, pw, ph, margin);
-  } else if (file.type === 'text/plain') {
-    return await textToPDF(file, pdf, pw, ph, margin);
-  } else if (file.type === 'text/html' || file.name.match(/\.html?$/i)) {
-    return await htmlToPDF(file, pdf, pw, ph, margin);
-  } else {
-    return await anyToPDF(file, pdf, pw, ph, margin);
+// ── PDF helpers ──
+async function fileToPDF(file, fmt, ori, margin) {
+  var pdf = new window.jspdf.jsPDF({ orientation: ori, unit: 'mm', format: fmt });
+  var pw  = pdf.internal.pageSize.getWidth();
+  var ph  = pdf.internal.pageSize.getHeight();
+  if (file.type.startsWith('image/') || file.name.match(/\.(heic|heif|webp)$/i))
+    return imgToPDF(file, pdf, pw, ph, margin);
+  if (file.type === 'application/pdf')
+    return pdfRerender(file, pdf, pw, ph, margin);
+  if (file.type === 'text/plain')
+    return textToPDF(await file.text(), pdf, pw, ph, margin);
+  if (file.type === 'text/html' || file.name.match(/\.html?$/i)) {
+    var div = document.createElement('div');
+    div.innerHTML = await file.text();
+    return textToPDF(div.innerText || div.textContent || '', pdf, pw, ph, margin);
   }
+  var ab  = await file.arrayBuffer();
+  var raw = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(ab));
+  var txt = raw.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s{3,}/g, '\n').trim();
+  return textToPDF(txt || ('Fichier : ' + file.name), pdf, pw, ph, margin);
 }
 
 function imgToPDF(file, pdf, pw, ph, margin) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const usW = pw - margin*2, usH = ph - margin*2;
-        let iw = usW, ih = img.height/img.width*usW;
-        if (ih > usH) { ih = usH; iw = img.width/img.height*usH; }
-        const cvs = document.createElement('canvas');
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function (ev) {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function () {
+        var usW = pw - margin * 2, usH = ph - margin * 2;
+        var iw = usW, ih = img.height / img.width * usW;
+        if (ih > usH) { ih = usH; iw = img.width / img.height * usH; }
+        var cvs = document.createElement('canvas');
         cvs.width = img.width; cvs.height = img.height;
-        cvs.getContext('2d').drawImage(img,0,0);
-        const du = cvs.toDataURL('image/jpeg', 0.92);
-        pdf.addImage(du,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);
-        res(pdf.output('blob'));
+        cvs.getContext('2d').drawImage(img, 0, 0);
+        pdf.addImage(cvs.toDataURL('image/jpeg', 0.92), 'JPEG', (pw-iw)/2, (ph-ih)/2, iw, ih);
+        resolve(pdf.output('blob'));
       };
-      img.onerror = rej;
-      img.src = e.target.result;
+      img.src = ev.target.result;
     };
-    reader.onerror = rej;
     reader.readAsDataURL(file);
   });
 }
 
-async function pdfPassthrough(file, pdf, pw, ph, margin) {
-  const ab = await file.arrayBuffer();
-  const pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
-  for (let i = 1; i <= pdfDoc.numPages; i++) {
-    if (i > 1) pdf.addPage();
-    const page = await pdfDoc.getPage(i);
-    const vp = page.getViewport({ scale: 2 });
-    const cvs = document.createElement('canvas');
+async function pdfRerender(file, pdf, pw, ph, margin) {
+  var ab  = await file.arrayBuffer();
+  var doc = await pdfjsLib.getDocument({ data: ab }).promise;
+  for (var p = 1; p <= doc.numPages; p++) {
+    if (p > 1) pdf.addPage();
+    var page = await doc.getPage(p);
+    var vp   = page.getViewport({ scale: 2 });
+    var cvs  = document.createElement('canvas');
     cvs.width = vp.width; cvs.height = vp.height;
     await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
-    const du = cvs.toDataURL('image/jpeg', 0.9);
-    const usW = pw-margin*2, usH = ph-margin*2;
-    let iw = usW, ih = cvs.height/cvs.width*usW;
+    var usW = pw-margin*2, usH = ph-margin*2;
+    var iw = usW, ih = cvs.height/cvs.width*usW;
     if (ih > usH) { ih = usH; iw = cvs.width/cvs.height*usH; }
-    pdf.addImage(du,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);
+    pdf.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', (pw-iw)/2, (ph-ih)/2, iw, ih);
   }
   return pdf.output('blob');
 }
 
-async function textToPDF(file, pdf, pw, ph, margin) {
-  const txt = await file.text();
-  pdf.setFontSize(11); pdf.setTextColor(30,30,30);
-  const lines = pdf.splitTextToSize(txt, pw - margin*2);
-  let y = margin + 10;
-  lines.forEach(l => {
+function textToPDF(txt, pdf, pw, ph, margin) {
+  pdf.setFontSize(11); pdf.setTextColor(30, 30, 30);
+  var lines = pdf.splitTextToSize(txt, pw - margin * 2);
+  var y = margin + 10;
+  lines.forEach(function (line) {
     if (y + 6 > ph - margin) { pdf.addPage(); y = margin + 10; }
-    pdf.text(l, margin, y); y += 6;
+    pdf.text(line, margin, y); y += 6;
   });
-  return pdf.output('blob');
+  return Promise.resolve(pdf.output('blob'));
 }
 
-async function htmlToPDF(file, pdf, pw, ph, margin) {
-  const txt = await file.text();
-  const div = document.createElement('div');
-  div.innerHTML = txt;
-  const plain = div.innerText || div.textContent || '';
-  return textToPDF({ text: () => Promise.resolve(plain) }, pdf, pw, ph, margin);
-}
-
-async function anyToPDF(file, pdf, pw, ph, margin) {
-  let txt = '';
-  try {
-    const ab = await file.arrayBuffer();
-    txt = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(ab));
-    txt = txt.replace(/[^\x20-\x7E\xC0-\u024F\n\r\t]/g, ' ').replace(/\s{3,}/g, '\n').trim();
-    if (txt.length < 30) txt = `Fichier "${file.name}" converti.\n(Format non textuel)`;
-  } catch { txt = file.name; }
-  return textToPDF({ text: () => Promise.resolve(txt) }, pdf, pw, ph, margin);
-}
-
-// ── MERGE ──
 async function mergePDFs(blobs) {
-  const { jsPDF } = window.jspdf;
-  const mergedPdf = new jsPDF({ unit: 'px', format: 'a4' });
-  let first = true;
-
-  for (const blob of blobs) {
-    const ab = await blob.arrayBuffer();
-    const pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
-    for (let i = 1; i <= pdfDoc.numPages; i++) {
-      if (!first) mergedPdf.addPage();
-      first = false;
-      const page = await pdfDoc.getPage(i);
-      const vp = page.getViewport({ scale: 2 });
-      const cvs = document.createElement('canvas');
+  var merged = new window.jspdf.jsPDF({ unit: 'px', format: 'a4' });
+  var first  = true;
+  for (var i = 0; i < blobs.length; i++) {
+    var ab  = await blobs[i].arrayBuffer();
+    var doc = await pdfjsLib.getDocument({ data: ab }).promise;
+    for (var p = 1; p <= doc.numPages; p++) {
+      if (!first) merged.addPage(); first = false;
+      var page = await doc.getPage(p);
+      var vp   = page.getViewport({ scale: 2 });
+      var cvs  = document.createElement('canvas');
       cvs.width = vp.width; cvs.height = vp.height;
       await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
-      mergedPdf.internal.pageSize.width = vp.width;
-      mergedPdf.internal.pageSize.height = vp.height;
-      mergedPdf.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, vp.width, vp.height);
+      merged.internal.pageSize.width  = vp.width;
+      merged.internal.pageSize.height = vp.height;
+      merged.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, vp.width, vp.height);
     }
   }
-  return mergedPdf.output('blob');
+  return merged.output('blob');
 }
 
-function downloadAll() {
-  if (convertedBlobs.length === 0) { toast('Rien à télécharger, convertissez d\'abord !', 'red'); return; }
-  convertedBlobs.forEach(({ blob, name }) => {
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement('a'), { href: url, download: name });
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-  });
-  closeModal();
-}
-function closeModal() { document.getElementById('modal').classList.remove('show'); }
-
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════
 // EDITOR
-// ─────────────────────────────────────────────
-let canvas, curTool = 'select', fillC = '#4361ee', strokeC = '#1a1d2e', sw = 2;
-let isDrawing = false, drawStart = null, tmpShape = null;
-let hist = [], hIdx = -1;
+// ══════════════════════════════════════
+var canvas;
+var curTool  = 'select';
+var fillC    = '#4361ee';
+var strokeC  = '#1a1d2e';
+var sw       = 2;
+var isDrawing = false, drawStart = null, tmpShape = null;
+var edHist = [], edHIdx = -1;
 
 function initEditor() {
   canvas = new fabric.Canvas('mainCanvas', {
     backgroundColor: '#ffffff',
     preserveObjectStacking: true,
   });
-  setPage('a4', document.querySelector('.pp-btn.active'));
+  setPageSize('a4', document.querySelector('.pg-btn.active'));
 
-  canvas.on('object:added', saveH);
+  canvas.on('object:added',    saveH);
   canvas.on('object:modified', saveH);
-  canvas.on('object:removed', saveH);
-  canvas.on('selection:created', showProps);
-  canvas.on('selection:updated', showProps);
-  canvas.on('selection:cleared', () => {
+  canvas.on('object:removed',  saveH);
+  canvas.on('selection:created', showSelProps);
+  canvas.on('selection:updated', showSelProps);
+  canvas.on('selection:cleared', function () {
     document.getElementById('noSelMsg').style.display = 'block';
     document.getElementById('selProps').style.display = 'none';
   });
-  canvas.on('mouse:down', mDown);
-  canvas.on('mouse:move', mMove);
-  canvas.on('mouse:up', mUp);
+  canvas.on('mouse:down', edDown);
+  canvas.on('mouse:move', edMove);
+  canvas.on('mouse:up',   edUp);
 }
 
-function setPage(p, el) {
-  document.querySelectorAll('.pp-btn').forEach(b => b.classList.remove('active'));
+function setPageSize(p, el) {
+  document.querySelectorAll('.pg-btn').forEach(function (b) { b.classList.remove('active'); });
   if (el) el.classList.add('active');
-  const s = { a4:[794,1123], a3:[1123,1587], letter:[816,1056], '16:9':[1280,720] }[p] || [794,1123];
+  var s = { a4:[794,1123], a3:[1123,1587], letter:[816,1056], '16:9':[1280,720] }[p] || [794,1123];
   canvas.setWidth(s[0]); canvas.setHeight(s[1]); canvas.renderAll();
 }
 
 function setTool(t) {
   curTool = t;
-  document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById(`tb-${t}`);
+  document.querySelectorAll('.t-btn').forEach(function (b) { b.classList.remove('active'); });
+  var btn = document.getElementById('tb-' + t);
   if (btn) btn.classList.add('active');
   canvas.isDrawingMode = (t === 'draw');
-  if (t === 'draw') { canvas.freeDrawingBrush.color = strokeC; canvas.freeDrawingBrush.width = sw; }
-  canvas.selection = (t === 'select');
-  canvas.defaultCursor = t === 'select' ? 'default' : (t === 'text' ? 'text' : 'crosshair');
+  if (t === 'draw') {
+    canvas.freeDrawingBrush.color = strokeC === 'transparent' ? '#000' : strokeC;
+    canvas.freeDrawingBrush.width = sw;
+  }
+  canvas.selection     = (t === 'select');
+  canvas.defaultCursor = t === 'select' ? 'default' : t === 'text' ? 'text' : 'crosshair';
 }
 
-function mDown(opt) {
+function edDown(opt) {
   if (curTool === 'select' || curTool === 'draw') return;
-  if (curTool === 'erase') { if (opt.target) canvas.remove(opt.target); return; }
+  if (curTool === 'erase') { if (opt.target) { canvas.remove(opt.target); canvas.renderAll(); } return; }
   if (curTool === 'text') {
-    const ptr = canvas.getPointer(opt.e);
-    const t = new fabric.IText('Votre texte ici', {
+    var ptr = canvas.getPointer(opt.e);
+    var t = new fabric.IText('Votre texte ici', {
       left: ptr.x, top: ptr.y,
       fontFamily: document.getElementById('fontSel').value,
-      fontSize: parseInt(document.getElementById('fsInput').value),
-      fill: fillC,
+      fontSize:   parseInt(document.getElementById('fsRange').value),
+      fill: fillC === 'transparent' ? '#000' : fillC,
     });
-    canvas.add(t);
-    canvas.setActiveObject(t);
-    t.enterEditing();
-    return;
+    canvas.add(t); canvas.setActiveObject(t); t.enterEditing(); return;
   }
   isDrawing = true;
   drawStart = canvas.getPointer(opt.e);
-  const o = { left: drawStart.x, top: drawStart.y, fill: fillC === 'transparent' ? '' : fillC, stroke: strokeC === 'transparent' ? '' : strokeC, strokeWidth: sw, selectable: false, opacity: parseFloat(document.getElementById('opInput').value) };
-  if (curTool === 'rect') tmpShape = new fabric.Rect({ ...o, width:0, height:0, rx:3, ry:3 });
-  else if (curTool === 'circle') tmpShape = new fabric.Ellipse({ ...o, rx:0, ry:0 });
-  else if (curTool === 'line') tmpShape = new fabric.Line([drawStart.x, drawStart.y, drawStart.x, drawStart.y], { stroke: strokeC==='transparent'?'#000':strokeC, strokeWidth:sw, selectable:false });
+  var o = {
+    left: drawStart.x, top: drawStart.y,
+    fill:        fillC   === 'transparent' ? '' : fillC,
+    stroke:      strokeC === 'transparent' ? '' : strokeC,
+    strokeWidth: sw,
+    opacity:     parseFloat(document.getElementById('opRange').value),
+    selectable:  false,
+  };
+  if (curTool === 'rect')   tmpShape = new fabric.Rect(Object.assign({}, o, { width:0, height:0, rx:3, ry:3 }));
+  if (curTool === 'circle') tmpShape = new fabric.Ellipse(Object.assign({}, o, { rx:0, ry:0 }));
+  if (curTool === 'line')   tmpShape = new fabric.Line([drawStart.x,drawStart.y,drawStart.x,drawStart.y], { stroke: strokeC==='transparent'?'#000':strokeC, strokeWidth:sw, selectable:false });
   if (tmpShape) canvas.add(tmpShape);
 }
 
-function mMove(opt) {
+function edMove(opt) {
   if (!isDrawing || !tmpShape) return;
-  const ptr = canvas.getPointer(opt.e);
-  const dx = ptr.x - drawStart.x, dy = ptr.y - drawStart.y;
-  if (curTool === 'rect') {
-    tmpShape.set({ left: dx<0?ptr.x:drawStart.x, top: dy<0?ptr.y:drawStart.y, width:Math.abs(dx), height:Math.abs(dy) });
-  } else if (curTool === 'circle') {
-    tmpShape.set({ left: dx>0?drawStart.x:ptr.x, top: dy>0?drawStart.y:ptr.y, rx:Math.abs(dx)/2, ry:Math.abs(dy)/2 });
-  } else if (curTool === 'line') {
-    tmpShape.set({ x2:ptr.x, y2:ptr.y });
-  }
+  var ptr = canvas.getPointer(opt.e);
+  var dx = ptr.x - drawStart.x, dy = ptr.y - drawStart.y;
+  if (curTool === 'rect')   tmpShape.set({ left:dx<0?ptr.x:drawStart.x, top:dy<0?ptr.y:drawStart.y, width:Math.abs(dx), height:Math.abs(dy) });
+  if (curTool === 'circle') tmpShape.set({ left:dx>0?drawStart.x:ptr.x, top:dy>0?drawStart.y:ptr.y, rx:Math.abs(dx)/2, ry:Math.abs(dy)/2 });
+  if (curTool === 'line')   tmpShape.set({ x2:ptr.x, y2:ptr.y });
   canvas.renderAll();
 }
 
-function mUp() {
+function edUp() {
   if (!isDrawing) return;
   isDrawing = false;
-  if (tmpShape) { tmpShape.set({selectable:true}); canvas.setActiveObject(tmpShape); tmpShape=null; setTool('select'); }
+  if (tmpShape) { tmpShape.set({ selectable:true }); canvas.setActiveObject(tmpShape); tmpShape = null; setTool('select'); }
 }
 
 function addArrow() {
-  const cx = canvas.width/2, cy = canvas.height/2;
-  const g = new fabric.Group([
-    new fabric.Line([cx-80,cy,cx+70,cy], { stroke:strokeC==='transparent'?var_blue:strokeC, strokeWidth:sw||3 }),
-    new fabric.Triangle({ width:16, height:14, fill:strokeC==='transparent'?'#4361ee':strokeC, left:cx+62, top:cy-7, angle:90 }),
+  var cx = canvas.width/2, cy = canvas.height/2;
+  var col = strokeC === 'transparent' ? '#4361ee' : strokeC;
+  var g = new fabric.Group([
+    new fabric.Line([cx-80,cy,cx+65,cy], { stroke:col, strokeWidth:sw||3 }),
+    new fabric.Triangle({ width:16, height:14, fill:col, left:cx+57, top:cy-7, angle:90 }),
   ]);
   canvas.add(g); canvas.setActiveObject(g); canvas.renderAll();
 }
-const var_blue = '#4361ee';
 
 function addSym(s) {
-  const t = new fabric.Text(s, { left:canvas.width/2-20, top:canvas.height/2-20, fontSize:42, fill:fillC==='transparent'?'#4361ee':fillC });
+  var t = new fabric.Text(s, { left:canvas.width/2-20, top:canvas.height/2-20, fontSize:42, fill:fillC==='transparent'?'#4361ee':fillC });
   canvas.add(t); canvas.setActiveObject(t); canvas.renderAll();
 }
 
+function applyProp(k, v) {
+  var o = canvas.getActiveObject(); if (!o) return;
+  if (o.type === 'activeSelection') o.getObjects().forEach(function (i) { i.set(k,v); });
+  else o.set(k, v);
+  canvas.renderAll();
+}
+
 function pickFill(el) {
-  document.querySelectorAll('#fillSwatches .swatch').forEach(s => s.classList.remove('sel'));
+  document.querySelectorAll('#fillSw .sw').forEach(function (s) { s.classList.remove('sel'); });
   el.classList.add('sel');
-  fillC = el.dataset.c;
+  fillC = el.getAttribute('data-c');
   if (fillC !== 'transparent') document.getElementById('fillPicker').value = fillC;
   applyProp('fill', fillC === 'transparent' ? '' : fillC);
 }
-function setFill(v) { fillC = v; applyProp('fill', v); }
+function setFillC(v) { fillC = v; applyProp('fill', v); }
+
 function pickStroke(el) {
-  document.querySelectorAll('#strokeSwatches .swatch').forEach(s => s.classList.remove('sel'));
+  document.querySelectorAll('#strokeSw .sw').forEach(function (s) { s.classList.remove('sel'); });
   el.classList.add('sel');
-  strokeC = el.dataset.c;
+  strokeC = el.getAttribute('data-c');
   if (strokeC !== 'transparent') document.getElementById('strokePicker').value = strokeC;
-  applyProp('stroke', strokeC==='transparent'?'':strokeC);
-  canvas.freeDrawingBrush.color = strokeC;
+  applyProp('stroke', strokeC === 'transparent' ? '' : strokeC);
+  if (canvas.isDrawingMode) canvas.freeDrawingBrush.color = strokeC === 'transparent' ? '#000' : strokeC;
 }
-function setStroke(v) { strokeC = v; applyProp('stroke', v); canvas.freeDrawingBrush.color = v; }
-function updateSW(v) {
-  sw = parseInt(v); document.getElementById('swVal').textContent = v;
-  applyProp('strokeWidth', sw); canvas.freeDrawingBrush.width = sw;
-}
-function updateOp(v) {
-  document.getElementById('opVal').textContent = Math.round(v*100)+'%';
-  applyProp('opacity', parseFloat(v));
-}
-function applyProp(k, v) {
-  const o = canvas.getActiveObject(); if (!o) return;
-  if (o.type === 'activeSelection') o.getObjects().forEach(i => i.set(k,v));
-  else o.set(k,v);
-  canvas.renderAll();
-}
-function applyFont() {
-  const o = canvas.getActiveObject();
-  if (!o || (o.type !== 'i-text' && o.type !== 'text')) return;
-  o.set({ fontFamily: document.getElementById('fontSel').value, fontSize: parseInt(document.getElementById('fsInput').value) });
-  canvas.renderAll();
-}
-function toggleBold() { const o=canvas.getActiveObject(); if(!o)return; o.set('fontWeight',o.fontWeight==='bold'?'normal':'bold'); document.getElementById('boldBtn').classList.toggle('on',o.fontWeight==='bold'); canvas.renderAll(); }
-function toggleItalic() { const o=canvas.getActiveObject(); if(!o)return; o.set('fontStyle',o.fontStyle==='italic'?'normal':'italic'); document.getElementById('italicBtn').classList.toggle('on',o.fontStyle==='italic'); canvas.renderAll(); }
-function toggleUnder() { const o=canvas.getActiveObject(); if(!o)return; o.set('underline',!o.underline); document.getElementById('underBtn').classList.toggle('on',o.underline); canvas.renderAll(); }
+function setStrokeC(v) { strokeC = v; applyProp('stroke', v); if (canvas.isDrawingMode) canvas.freeDrawingBrush.color = v; }
 
-function dupeSel() {
-  const o=canvas.getActiveObject(); if(!o)return;
-  o.clone(c => { c.set({left:o.left+20,top:o.top+20}); canvas.add(c); canvas.setActiveObject(c); canvas.renderAll(); });
-}
-function delSel() {
-  const o=canvas.getActiveObject(); if(!o)return;
-  if(o.type==='activeSelection') { o.getObjects().forEach(i=>canvas.remove(i)); canvas.discardActiveObject(); }
-  else canvas.remove(o);
-  canvas.renderAll();
-}
-function clearEd() { if(!confirm('Effacer tout le contenu ?'))return; canvas.clear(); canvas.backgroundColor='#ffffff'; canvas.renderAll(); }
-function centerSel(axis) {
-  const o=canvas.getActiveObject(); if(!o)return;
-  if(axis==='h') o.set('left',(canvas.width-o.getScaledWidth())/2);
-  if(axis==='v') o.set('top',(canvas.height-o.getScaledHeight())/2);
-  o.setCoords(); canvas.renderAll();
-}
+function updateSW(v) { sw = parseInt(v); document.getElementById('swVal').textContent = v; applyProp('strokeWidth', sw); if (canvas.isDrawingMode) canvas.freeDrawingBrush.width = sw; }
+function updateOp(v) { document.getElementById('opVal').textContent = Math.round(v*100)+'%'; applyProp('opacity', parseFloat(v)); }
+function applyFont() { var o=canvas.getActiveObject(); if(!o||(o.type!=='i-text'&&o.type!=='text'))return; o.set({fontFamily:document.getElementById('fontSel').value,fontSize:parseInt(document.getElementById('fsRange').value)}); canvas.renderAll(); }
+function toggleBold()   { var o=canvas.getActiveObject();if(!o)return;o.set('fontWeight',o.fontWeight==='bold'?'normal':'bold');document.getElementById('boldBtn').classList.toggle('on',o.fontWeight==='bold');canvas.renderAll(); }
+function toggleItalic() { var o=canvas.getActiveObject();if(!o)return;o.set('fontStyle',o.fontStyle==='italic'?'normal':'italic');document.getElementById('italicBtn').classList.toggle('on',o.fontStyle==='italic');canvas.renderAll(); }
+function toggleUnder()  { var o=canvas.getActiveObject();if(!o)return;o.set('underline',!o.underline);document.getElementById('underBtn').classList.toggle('on',o.underline);canvas.renderAll(); }
 
-function showProps() {
-  const o=canvas.getActiveObject(); if(!o)return;
+function dupeSel() { var o=canvas.getActiveObject();if(!o)return;o.clone(function(c){c.set({left:o.left+18,top:o.top+18});canvas.add(c);canvas.setActiveObject(c);canvas.renderAll();}); }
+function delSel()  { var o=canvas.getActiveObject();if(!o)return;if(o.type==='activeSelection'){o.getObjects().forEach(function(i){canvas.remove(i);});canvas.discardActiveObject();}else{canvas.remove(o);}canvas.renderAll(); }
+function fwdSel()  { var o=canvas.getActiveObject();if(o){canvas.bringForward(o);canvas.renderAll();} }
+function bwdSel()  { var o=canvas.getActiveObject();if(o){canvas.sendBackwards(o);canvas.renderAll();} }
+function clearEd() { if(!confirm('Effacer tout le contenu ?'))return;canvas.clear();canvas.backgroundColor='#ffffff';canvas.renderAll(); }
+function centerSel(axis) { var o=canvas.getActiveObject();if(!o)return;if(axis==='h')o.set('left',(canvas.width-o.getScaledWidth())/2);if(axis==='v')o.set('top',(canvas.height-o.getScaledHeight())/2);o.setCoords();canvas.renderAll(); }
+
+function showSelProps() {
+  var o=canvas.getActiveObject();if(!o)return;
   document.getElementById('noSelMsg').style.display='none';
   document.getElementById('selProps').style.display='block';
   document.getElementById('pX').value=Math.round(o.left);
@@ -1465,93 +959,77 @@ function showProps() {
   document.getElementById('pRot').value=Math.round(o.angle);
   document.getElementById('pRotV').textContent=Math.round(o.angle)+'°';
 }
-function moveSel() {
-  const o=canvas.getActiveObject(); if(!o)return;
-  o.set({left:parseInt(document.getElementById('pX').value),top:parseInt(document.getElementById('pY').value)});
-  o.setCoords(); canvas.renderAll();
-}
-function sizeSel() {
-  const o=canvas.getActiveObject(); if(!o)return;
-  o.set({scaleX:parseInt(document.getElementById('pW').value)/o.width, scaleY:parseInt(document.getElementById('pH').value)/o.height});
-  o.setCoords(); canvas.renderAll();
-}
-function rotSel() {
-  const o=canvas.getActiveObject(); if(!o)return;
-  o.set('angle',parseInt(document.getElementById('pRot').value)); o.setCoords(); canvas.renderAll();
-}
+function moveSel() { var o=canvas.getActiveObject();if(!o)return;o.set({left:parseInt(document.getElementById('pX').value),top:parseInt(document.getElementById('pY').value)});o.setCoords();canvas.renderAll(); }
+function sizeSel() { var o=canvas.getActiveObject();if(!o)return;o.set({scaleX:parseInt(document.getElementById('pW').value)/o.width,scaleY:parseInt(document.getElementById('pH').value)/o.height});o.setCoords();canvas.renderAll(); }
+function rotSel()  { var o=canvas.getActiveObject();if(!o)return;o.set('angle',parseInt(document.getElementById('pRot').value));o.setCoords();canvas.renderAll(); }
 
-function saveH() {
-  const j=JSON.stringify(canvas.toJSON());
-  hist=hist.slice(0,hIdx+1); hist.push(j); hIdx=hist.length-1;
-}
-function undoEd() { if(hIdx<=0)return; hIdx--; canvas.loadFromJSON(hist[hIdx],()=>canvas.renderAll()); }
-function redoEd() { if(hIdx>=hist.length-1)return; hIdx++; canvas.loadFromJSON(hist[hIdx],()=>canvas.renderAll()); }
+function saveH() { var j=JSON.stringify(canvas.toJSON());edHist=edHist.slice(0,edHIdx+1);edHist.push(j);edHIdx=edHist.length-1; }
+function undoEd() { if(edHIdx<=0)return;edHIdx--;canvas.loadFromJSON(edHist[edHIdx],function(){canvas.renderAll();}); }
+function redoEd() { if(edHIdx>=edHist.length-1)return;edHIdx++;canvas.loadFromJSON(edHist[edHIdx],function(){canvas.renderAll();}); }
 
 async function importDoc(file) {
-  if (!file) return;
   if (file.type.startsWith('image/')) {
-    const r = new FileReader();
-    r.onload = e => {
-      fabric.Image.fromURL(e.target.result, img => {
-        const mW = canvas.width*0.9;
-        if (img.width > mW) { const s=mW/img.width; img.scaleX=s; img.scaleY=s; }
+    var r = new FileReader();
+    r.onload = function (ev) {
+      fabric.Image.fromURL(ev.target.result, function (img) {
+        var mW = canvas.width * 0.9;
+        if (img.width > mW) { var s=mW/img.width; img.scaleX=s; img.scaleY=s; }
         img.set({left:10,top:10}); canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
       });
     };
     r.readAsDataURL(file);
   } else if (file.type === 'application/pdf') {
-    const ab = await file.arrayBuffer();
-    const pd = await pdfjsLib.getDocument({data:ab}).promise;
-    const page = await pd.getPage(1);
-    const vp = page.getViewport({scale:1.5});
-    const cvs = document.createElement('canvas');
-    cvs.width=vp.width; cvs.height=vp.height;
-    await page.render({canvasContext:cvs.getContext('2d'),viewport:vp}).promise;
-    fabric.Image.fromURL(cvs.toDataURL(), img => {
-      const mW = canvas.width*0.95;
-      if (img.width > mW) { const s=mW/img.width; img.scaleX=s; img.scaleY=s; }
+    var ab  = await file.arrayBuffer();
+    var doc = await pdfjsLib.getDocument({ data: ab }).promise;
+    var page = await doc.getPage(1);
+    var vp   = page.getViewport({ scale: 1.5 });
+    var cvs  = document.createElement('canvas');
+    cvs.width = vp.width; cvs.height = vp.height;
+    await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
+    fabric.Image.fromURL(cvs.toDataURL(), function (img) {
+      var mW = canvas.width * 0.95;
+      if (img.width > mW) { var s=mW/img.width; img.scaleX=s; img.scaleY=s; }
       img.set({left:5,top:5}); canvas.add(img); canvas.sendToBack(img); canvas.renderAll();
     });
-    toast('PDF importé (page 1) — annotez maintenant !', 'green');
+    showToast('PDF importé — annotez maintenant !', 'ok');
   }
 }
 
 function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const w=canvas.width, h=canvas.height;
-  const du=canvas.toDataURL({format:'jpeg',quality:0.95});
-  const pdf=new jsPDF({orientation:w>h?'landscape':'portrait',unit:'px',format:[w,h]});
+  var w=canvas.width, h=canvas.height;
+  var du=canvas.toDataURL({format:'jpeg',quality:0.95});
+  var pdf=new window.jspdf.jsPDF({orientation:w>h?'landscape':'portrait',unit:'px',format:[w,h]});
   pdf.addImage(du,'JPEG',0,0,w,h);
   pdf.save('document-edite.pdf');
-  toast('PDF exporté avec succès ! 🎉', 'green');
+  showToast('PDF exporté ! 🎉', 'ok');
 }
 function exportPNG() {
-  const a=Object.assign(document.createElement('a'),{href:canvas.toDataURL({format:'png',multiplier:2}),download:'document.png'});
-  a.click();
-  toast('PNG exporté !', 'green');
+  var a=document.createElement('a');
+  a.href=canvas.toDataURL({format:'png',multiplier:2});
+  a.download='document.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast('PNG exporté !', 'ok');
 }
 
-// ── NAV ──
+// ── Navigation ──
 function goPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`page-${id}`).classList.add('active');
-  const tabs = document.querySelectorAll('.nav-tab');
-  if (id === 'convert') tabs[0].classList.add('active');
-  else tabs[1].classList.add('active');
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
 }
 
-// ── TOAST ──
-let toastTimer;
-function toast(msg, type='') {
-  const old=document.querySelector('.toast'); if(old)old.remove();
-  clearTimeout(toastTimer);
-  const el=Object.assign(document.createElement('div'),{className:`toast ${type}`,innerHTML:`<span>${msg}</span>`});
+// ── Toast ──
+var _tt;
+function showToast(msg, type) {
+  var old = document.querySelector('.toast'); if (old) old.remove();
+  clearTimeout(_tt);
+  var el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
   document.body.appendChild(el);
-  toastTimer=setTimeout(()=>el.remove(),3200);
+  _tt = setTimeout(function () { if (el.parentNode) el.remove(); }, 3000);
 }
-
-// initEditor is called inside the main load listener above
 </script>
 </body>
 </html>
