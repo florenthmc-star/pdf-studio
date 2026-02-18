@@ -631,11 +631,14 @@ input[type="color"] {
   <div class="section-title">📂 Vos fichiers → PDF</div>
   <p class="section-sub">Glissez vos fichiers, réorganisez-les dans l'ordre voulu, puis convertissez ou fusionnez en un seul PDF.</p>
 
+  <!-- INPUT FILE hors dropzone pour eviter les conflits de clic -->
+  <input type="file" id="fileIn" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.txt,.html,.htm">
+
   <!-- DROP ZONE -->
-  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileIn').click()">
+  <div class="dropzone" id="dropzone">
     <span class="dz-emoji">📥</span>
     <div class="dz-title">Déposez vos fichiers ici</div>
-    <div class="dz-sub">Ou cliquez pour parcourir vos fichiers sur votre ordinateur</div>
+    <div class="dz-sub">Ou cliquez n'importe où ici pour parcourir vos fichiers</div>
     <div class="format-pills">
       <span class="pill pill-img">JPG</span>
       <span class="pill pill-img">PNG</span>
@@ -647,10 +650,7 @@ input[type="color"] {
       <span class="pill pill-txt">TXT</span>
       <span class="pill pill-txt">HTML</span>
     </div>
-    <button class="btn btn-blue" onclick="event.stopPropagation(); document.getElementById('fileIn').click()">
-      ＋ Choisir des fichiers
-    </button>
-    <input type="file" id="fileIn" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.txt,.html,.htm" onchange="addFiles(this.files)">
+    <button class="btn btn-blue" id="chooseBtn">＋ Choisir des fichiers</button>
   </div>
 
   <!-- OPTIONS -->
@@ -719,7 +719,7 @@ input[type="color"] {
       ⬇️ Télécharger
     </button>
     <div class="actions-bar-sep"></div>
-    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileIn').click()">＋ Ajouter des fichiers</button>
+    <button class="btn btn-ghost btn-sm" id="addMoreBtn">＋ Ajouter des fichiers</button>
   </div>
 </div>
 
@@ -911,16 +911,49 @@ input[type="color"] {
 // ─────────────────────────────────────────────
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-let files = []; // [{id, file, status, blob, thumbUrl}]
+let files = [];
 let fid = 0;
 let mergeOn = true;
-let convertedBlobs = []; // for download
+let convertedBlobs = [];
 let dragSrcIdx = null;
 
-const dropzone = document.getElementById('dropzone');
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
-dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('over'); addFiles(e.dataTransfer.files); });
+// Init all file/drop events after DOM ready
+window.addEventListener('load', function() {
+  const fileIn = document.getElementById('fileIn');
+  const dz = document.getElementById('dropzone');
+  const chooseBtn = document.getElementById('chooseBtn');
+  const addMoreBtn = document.getElementById('addMoreBtn');
+
+  fileIn.addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+      addFiles(this.files);
+      this.value = '';
+    }
+  });
+
+  chooseBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    fileIn.click();
+  });
+
+  dz.addEventListener('click', function(e) {
+    if (e.target === chooseBtn) return;
+    fileIn.click();
+  });
+
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('over'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.classList.remove('over');
+    if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
+  });
+
+  if (addMoreBtn) addMoreBtn.addEventListener('click', function() { fileIn.click(); });
+
+  // Init editor canvas
+  initEditor();
+});
 
 function addFiles(list) {
   Array.from(list).forEach(f => {
@@ -984,6 +1017,7 @@ function renderCards() {
         <div class="file-card-meta">
           <span>${fmtSize(f.file.size)}</span>
           <span>${fileType(f.file)}</span>
+
         </div>
       </div>
       <span class="file-card-status ${stClass}" id="st-${f.id}">${stLabel}</span>
@@ -1040,7 +1074,7 @@ function fileEmoji(f) {
   return '📁';
 }
 function fileType(f) {
-  const ext = f.file.name.split('.').pop().toUpperCase();
+  const ext = f.name.split('.').pop().toUpperCase();
   return ext;
 }
 function fmtSize(b) {
@@ -1517,7 +1551,7 @@ function toast(msg, type='') {
   toastTimer=setTimeout(()=>el.remove(),3200);
 }
 
-window.addEventListener('load', initEditor);
+// initEditor is called inside the main load listener above
 </script>
 </body>
 </html>
