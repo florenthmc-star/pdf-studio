@@ -3,1710 +3,1521 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF Studio Pro</title>
+<title>PDF Studio</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
-  :root {
-    --bg: #0d0f14;
-    --surface: #161922;
-    --surface2: #1e2230;
-    --border: #2a2f42;
-    --accent: #4f7cff;
-    --accent2: #7c4fff;
-    --success: #2dd68c;
-    --text: #e8eaf0;
-    --text2: #8890a8;
-    --danger: #ff4f6a;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* HEADER */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 32px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(13,15,20,0.95);
-    backdrop-filter: blur(20px);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 1.4rem;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.5px;
-  }
-
-  .logo span { -webkit-text-fill-color: var(--text); }
-
-  .tabs {
-    display: flex;
-    gap: 4px;
-    background: var(--surface);
-    padding: 4px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-
-  .tab {
-    padding: 8px 22px;
-    border: none;
-    background: transparent;
-    color: var(--text2);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 500;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .tab.active {
-    background: var(--accent);
-    color: #fff;
-  }
-
-  .tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
-
-  /* PAGES */
-  .page { display: none; padding: 32px; }
-  .page.active { display: block; }
-
-  /* CONVERTER PAGE */
-  .converter-layout {
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .drop-zone {
-    border: 2px dashed var(--border);
-    border-radius: 20px;
-    padding: 64px 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: var(--surface);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .drop-zone::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, rgba(79,124,255,0.05) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .drop-zone.dragover, .drop-zone:hover {
-    border-color: var(--accent);
-    background: var(--surface2);
-  }
-
-  .drop-zone.dragover::before, .drop-zone:hover::before { opacity: 1; }
-
-  .drop-icon {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 20px;
-    background: linear-gradient(135deg, rgba(79,124,255,0.2), rgba(124,79,255,0.2));
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-  }
-
-  .drop-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-
-  .drop-sub {
-    color: var(--text2);
-    font-size: 0.88rem;
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-
-  .formats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    margin-bottom: 24px;
-  }
-
-  .fmt-badge {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text2);
-  }
-
-  .btn {
-    padding: 11px 24px;
-    border: none;
-    border-radius: 10px;
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 500;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #fff;
-  }
-
-  .btn-primary:hover { background: #3d6ae8; transform: translateY(-1px); }
-
-  .btn-success {
-    background: var(--success);
-    color: #0d1a10;
-  }
-
-  .btn-success:hover { background: #24c07d; }
-
-  .btn-ghost {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-ghost:hover { background: var(--border); }
-
-  .btn-danger {
-    background: rgba(255,79,106,0.15);
-    color: var(--danger);
-    border: 1px solid rgba(255,79,106,0.3);
-  }
-
-  .btn-danger:hover { background: rgba(255,79,106,0.25); }
-
-  #fileInput { display: none; }
-
-  /* FILE LIST */
-  .file-panel {
-    background: var(--surface);
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .file-panel-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .file-panel-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 1rem;
-  }
-
-  .file-list {
-    padding: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .file-list::-webkit-scrollbar { width: 4px; }
-  .file-list::-webkit-scrollbar-track { background: transparent; }
-  .file-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .file-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: var(--surface2);
-    margin-bottom: 8px;
-    border: 1px solid var(--border);
-    animation: slideIn 0.2s ease;
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .file-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    flex-shrink: 0;
-  }
-
-  .file-icon.img { background: rgba(79,124,255,0.2); }
-  .file-icon.doc { background: rgba(79,199,255,0.2); }
-  .file-icon.pdf { background: rgba(255,79,106,0.2); }
-  .file-icon.other { background: rgba(124,79,255,0.2); }
-
-  .file-info { flex: 1; min-width: 0; }
-
-  .file-name {
-    font-size: 0.85rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .file-size { font-size: 0.75rem; color: var(--text2); }
-
-  .file-status {
-    font-size: 0.75rem;
-    padding: 3px 8px;
-    border-radius: 5px;
-    font-weight: 600;
-  }
-
-  .status-ready { background: rgba(79,124,255,0.15); color: var(--accent); }
-  .status-done { background: rgba(45,214,140,0.15); color: var(--success); }
-  .status-error { background: rgba(255,79,106,0.15); color: var(--danger); }
-
-  .file-remove {
-    background: none;
-    border: none;
-    color: var(--text2);
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-
-  .file-remove:hover { background: rgba(255,79,106,0.15); color: var(--danger); }
-
-  .panel-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .convert-all-btn {
-    width: 100%;
-    justify-content: center;
-    padding: 13px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    border-radius: 12px;
-  }
-
-  .empty-state {
-    padding: 32px;
-    text-align: center;
-    color: var(--text2);
-    font-size: 0.88rem;
-  }
-
-  /* EDITOR PAGE */
-  .editor-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr 220px;
-    gap: 0;
-    height: calc(100vh - 80px);
-    margin: -32px;
-  }
-
-  .editor-sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .editor-sidebar-section {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .section-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: var(--text2);
-    margin-bottom: 10px;
-  }
-
-  .tool-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-  }
-
-  .tool-btn {
-    padding: 10px 8px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .tool-btn .tool-icon { font-size: 1.2rem; }
-
-  .tool-btn:hover, .tool-btn.active {
-    background: rgba(79,124,255,0.15);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* Color palette */
-  .color-palette {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-
-  .color-swatch {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.15s;
-  }
-
-  .color-swatch.selected { border-color: #fff; transform: scale(1.15); }
-
-  .color-input-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  input[type="color"] {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 8px;
-    padding: 0;
-  }
-
-  .prop-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    gap: 8px;
-  }
-
-  .prop-label { font-size: 0.8rem; color: var(--text2); flex-shrink: 0; }
-
-  input[type="range"] {
-    flex: 1;
-    accent-color: var(--accent);
-    height: 4px;
-  }
-
-  .prop-val { font-size: 0.8rem; min-width: 28px; text-align: right; }
-
-  select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.83rem;
-    width: 100%;
-    cursor: pointer;
-  }
-
-  input[type="text"], input[type="number"] {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 7px 10px;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.83rem;
-    width: 100%;
-  }
-
-  /* Canvas area */
-  .editor-canvas-area {
-    background: #1a1a2e;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .editor-toolbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .toolbar-sep {
-    width: 1px;
-    height: 24px;
-    background: var(--border);
-    margin: 0 4px;
-  }
-
-  .toolbar-btn {
-    padding: 6px 12px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    color: var(--text2);
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-family: 'DM Sans', sans-serif;
-  }
-
-  .toolbar-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
-
-  .canvas-wrapper {
-    flex: 1;
-    overflow: auto;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 32px;
-  }
-
-  .canvas-wrapper::-webkit-scrollbar { width: 8px; height: 8px; }
-  .canvas-wrapper::-webkit-scrollbar-track { background: transparent; }
-  .canvas-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-  #fabricCanvas {
-    border-radius: 4px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-
-  /* Properties panel */
-  .props-panel {
-    background: var(--surface);
-    border-left: 1px solid var(--border);
-    overflow-y: auto;
-    padding: 16px;
-  }
-
-  .props-panel::-webkit-scrollbar { width: 4px; }
-  .props-panel::-webkit-scrollbar-thumb { background: var(--border); }
-
-  .no-selection {
-    text-align: center;
-    color: var(--text2);
-    font-size: 0.83rem;
-    padding: 32px 16px;
-  }
-
-  /* Upload for editor */
-  .editor-upload-zone {
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.83rem;
-    color: var(--text2);
-    margin: 12px 0;
-  }
-
-  .editor-upload-zone:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* Progress bar */
-  .progress-bar {
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-top: 8px;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 2px;
-    transition: width 0.3s;
-    width: 0%;
-  }
-
-  /* Notification */
-  .notif {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 20px;
-    font-size: 0.88rem;
-    z-index: 9999;
-    animation: notifIn 0.3s ease;
-    max-width: 320px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  @keyframes notifIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .notif.success { border-color: var(--success); }
-  .notif.error { border-color: var(--danger); }
-
-  /* Page size selector */
-  .page-sizes {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-  }
-
-  .size-btn {
-    padding: 8px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text2);
-    font-size: 0.78rem;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
-  }
-
-  .size-btn:hover, .size-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,124,255,0.1); }
-
-  .sidebar-scroll { overflow-y: auto; flex: 1; }
-  .sidebar-scroll::-webkit-scrollbar { width: 3px; }
-  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); }
-
-  .text-style-row {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
-  }
-
-  .style-toggle {
-    flex: 1;
-    padding: 7px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    color: var(--text2);
-    cursor: pointer;
-    font-size: 0.85rem;
-    text-align: center;
-    transition: all 0.2s;
-    font-family: 'DM Sans', sans-serif;
-  }
-
-  .style-toggle:hover, .style-toggle.on { background: rgba(79,124,255,0.15); border-color: var(--accent); color: var(--accent); }
-
-  .align-row {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
-  }
-
-  .badge-count {
-    background: var(--accent);
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 0.7rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #f0f4ff;
+  --white: #ffffff;
+  --card: #ffffff;
+  --border: #e2e8f8;
+  --blue: #4361ee;
+  --blue2: #3a86ff;
+  --purple: #7b5ea7;
+  --green: #2ec4b6;
+  --orange: #ff9f1c;
+  --red: #e63946;
+  --text: #1a1d2e;
+  --text2: #6b7194;
+  --shadow: 0 4px 24px rgba(67,97,238,0.10);
+  --shadow-hover: 0 8px 32px rgba(67,97,238,0.18);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Outfit', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  background-image: radial-gradient(circle at 20% 20%, rgba(67,97,238,0.06) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(123,94,167,0.06) 0%, transparent 50%);
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 12px rgba(67,97,238,0.06);
+}
+
+.logo {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(67,97,238,0.3);
+}
+.logo-text { background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* NAV TABS */
+.nav {
+  display: flex;
+  gap: 6px;
+  background: var(--bg);
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+.nav-tab {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex; align-items: center; gap: 7px;
+}
+.nav-tab.active {
+  background: var(--white);
+  color: var(--blue);
+  box-shadow: 0 2px 10px rgba(67,97,238,0.12);
+}
+.nav-tab:hover:not(.active) { color: var(--text); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 32px; max-width: 1100px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.section-sub { color: var(--text2); font-size: 0.95rem; margin-bottom: 28px; }
+
+/* ── DROP ZONE ── */
+.dropzone {
+  border: 3px dashed var(--border);
+  border-radius: 24px;
+  padding: 52px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: var(--white);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.dropzone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(67,97,238,0.04), rgba(123,94,167,0.04));
+  opacity: 0; transition: opacity 0.3s;
+}
+.dropzone.over, .dropzone:hover { border-color: var(--blue); }
+.dropzone.over::before, .dropzone:hover::before { opacity: 1; }
+.dropzone.over { background: #f5f7ff; transform: scale(1.005); }
+
+.dz-emoji {
+  font-size: 3.5rem;
+  display: block;
+  margin-bottom: 14px;
+  animation: bounce 2.5s ease-in-out infinite;
+}
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+.dz-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.dz-sub { color: var(--text2); font-size: 0.88rem; margin-bottom: 20px; line-height: 1.6; }
+
+.format-pills {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 22px;
+}
+.pill {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.pill-img { background: #e8f4fd; color: #2196f3; }
+.pill-doc { background: #e8f0fe; color: #4361ee; }
+.pill-pdf { background: #fde8e8; color: #e63946; }
+.pill-txt { background: #e8fdf5; color: #2ec4b6; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 26px;
+  border: none; border-radius: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600; font-size: 0.92rem;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-blue { background: var(--blue); color: #fff; box-shadow: 0 4px 14px rgba(67,97,238,0.35); }
+.btn-blue:hover { background: #3451d1; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(67,97,238,0.4); }
+.btn-green { background: var(--green); color: #fff; box-shadow: 0 4px 14px rgba(46,196,182,0.35); }
+.btn-green:hover { background: #25a99f; transform: translateY(-2px); }
+.btn-orange { background: var(--orange); color: #fff; box-shadow: 0 4px 14px rgba(255,159,28,0.35); }
+.btn-orange:hover { background: #e88e10; transform: translateY(-2px); }
+.btn-ghost { background: var(--white); color: var(--text2); border: 1.5px solid var(--border); }
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); background: #f5f7ff; }
+.btn-red { background: #fde8e8; color: var(--red); border: 1.5px solid #fac5c8; }
+.btn-red:hover { background: #fac5c8; }
+.btn-sm { padding: 7px 14px; font-size: 0.82rem; border-radius: 9px; }
+
+/* ── FILE CARDS ── */
+.files-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.files-label {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800; font-size: 1rem; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.count-badge {
+  background: var(--blue); color: white;
+  border-radius: 20px; padding: 2px 10px;
+  font-size: 0.78rem; font-weight: 700;
+}
+.hint-text {
+  font-size: 0.8rem; color: var(--text2);
+  display: flex; align-items: center; gap: 5px;
+}
+
+#fileCards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+  min-height: 20px;
+}
+
+.file-card {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  transition: all 0.2s;
+  cursor: grab;
+  user-select: none;
+  position: relative;
+}
+.file-card:hover { border-color: var(--blue); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.file-card.dragging { opacity: 0.45; transform: scale(0.98); border-style: dashed; }
+.file-card.drag-over { border-color: var(--blue); border-style: solid; background: #f5f7ff; transform: scale(1.01); }
+
+.file-card-num {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: white;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.82rem;
+  flex-shrink: 0;
+  font-family: 'Nunito', sans-serif;
+}
+
+.file-thumb {
+  width: 44px; height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  font-size: 1.6rem;
+  position: relative;
+}
+.file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.file-thumb canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+
+.file-card-info { flex: 1; min-width: 0; }
+.file-card-name {
+  font-weight: 700; font-size: 0.9rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.file-card-meta { font-size: 0.78rem; color: var(--text2); display: flex; gap: 10px; }
+
+.file-card-status {
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700;
+  flex-shrink: 0;
+}
+.st-ready { background: #e8f0fe; color: var(--blue); }
+.st-converting { background: #fff8e8; color: var(--orange); }
+.st-done { background: #e8fdf5; color: var(--green); }
+.st-error { background: #fde8e8; color: var(--red); }
+
+.drag-handle {
+  color: #c0c8e0; font-size: 1.2rem;
+  cursor: grab; flex-shrink: 0; padding: 0 4px;
+  line-height: 1;
+}
+.drag-handle:active { cursor: grabbing; }
+
+.card-remove {
+  background: none; border: none;
+  color: #c0c8e0; font-size: 1.1rem;
+  cursor: pointer; padding: 4px 6px;
+  border-radius: 6px; transition: all 0.15s;
+  flex-shrink: 0;
+}
+.card-remove:hover { background: #fde8e8; color: var(--red); }
+
+/* ── ACTIONS BAR ── */
+.actions-bar {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 24px;
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow);
+}
+.actions-bar-sep { flex: 1; }
+
+/* Options panel */
+.options-row {
+  display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.opt-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  flex: 1; min-width: 140px;
+}
+.opt-label { font-size: 0.75rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+select, input[type="number"] {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+select:focus, input:focus { outline: none; border-color: var(--blue); }
+
+/* Toggle switch */
+.toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.toggle {
+  width: 42px; height: 24px;
+  background: var(--border); border-radius: 12px;
+  position: relative; cursor: pointer; transition: background 0.2s;
+  border: none; flex-shrink: 0;
+}
+.toggle.on { background: var(--blue); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px;
+  background: white; border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: left 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.toggle.on::after { left: 21px; }
+.toggle-label { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+
+/* Progress */
+.progress-wrap {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  display: none;
+  margin-bottom: 16px;
+}
+.progress-wrap.show { display: block; }
+.progress-label { font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.progress-bar { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple)); border-radius: 5px; transition: width 0.35s ease; width: 0%; }
+.progress-step { font-size: 0.8rem; color: var(--text2); margin-top: 8px; }
+
+/* Empty state */
+.empty-state {
+  text-align: center; padding: 32px; color: var(--text2); font-size: 0.9rem;
+  border: 2px dashed var(--border); border-radius: 16px;
+  background: rgba(255,255,255,0.5);
+}
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+
+/* ── SUCCESS MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  max-width: 400px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  animation: popIn 0.35s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes popIn { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
+.modal-icon { font-size: 4rem; margin-bottom: 16px; display: block; }
+.modal-title { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.5rem; margin-bottom: 8px; }
+.modal-sub { color: var(--text2); font-size: 0.9rem; margin-bottom: 28px; line-height: 1.6; }
+.modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ── EDITOR PAGE ── */
+.editor-wrap {
+  display: grid;
+  grid-template-columns: 220px 1fr 200px;
+  gap: 0;
+  height: calc(100vh - 68px);
+  margin: -32px;
+  overflow: hidden;
+}
+
+.ed-sidebar {
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.ed-sidebar::-webkit-scrollbar { width: 4px; }
+.ed-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sidebar-section {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ss-label {
+  font-size: 0.7rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text2); margin-bottom: 10px;
+}
+
+.tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+.t-btn {
+  padding: 9px 6px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text2);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.t-btn .ti { font-size: 1.15rem; }
+.t-btn:hover, .t-btn.active {
+  background: #eef1ff;
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.sym-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+.sym-btn {
+  width: 34px; height: 34px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; cursor: pointer; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.sym-btn:hover { background: #eef1ff; border-color: var(--blue); }
+
+/* color swatches */
+.swatch-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.swatch {
+  width: 22px; height: 22px; border-radius: 6px;
+  cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
+}
+.swatch.sel { border-color: var(--text); transform: scale(1.2); }
+.swatch-transparent {
+  background: linear-gradient(45deg, #ccc 25%, white 25%, white 75%, #ccc 75%);
+  background-size: 10px 10px;
+}
+
+.prop-row2 {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+}
+.pr-label { font-size: 0.78rem; color: var(--text2); flex-shrink: 0; width: 56px; }
+input[type="range"] {
+  flex: 1; accent-color: var(--blue); height: 4px; cursor: pointer;
+}
+.pr-val { font-size: 0.78rem; min-width: 30px; text-align: right; font-weight: 600; }
+
+input[type="color"] {
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 2px; background: none; cursor: pointer;
+}
+
+.font-select {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  width: 100%;
+  margin-bottom: 7px;
+}
+
+.style-btns { display: flex; gap: 4px; margin-bottom: 7px; }
+.st-btn {
+  flex: 1; padding: 6px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+  text-align: center; transition: all 0.15s; font-family: serif;
+}
+.st-btn:hover, .st-btn.on { background: #eef1ff; border-color: var(--blue); color: var(--blue); }
+
+/* Canvas zone */
+.ed-canvas-zone {
+  display: flex; flex-direction: column;
+  background: #e8ecf5;
+  overflow: hidden;
+}
+.ed-toolbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.tb-btn {
+  padding: 6px 12px; border: 1.5px solid var(--border);
+  background: var(--bg); border-radius: 8px;
+  font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 600;
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.tb-btn:hover { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
+.tb-sep { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
+.tb-btn.tb-export { background: var(--blue); color: white; border-color: var(--blue); }
+.tb-btn.tb-export:hover { background: #3451d1; }
+
+.canvas-scroll {
+  flex: 1; overflow: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 28px;
+}
+.canvas-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.canvas-scroll::-webkit-scrollbar-thumb { background: #c0c8e0; border-radius: 4px; }
+
+/* Properties panel */
+.ed-props {
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 14px;
+}
+.ed-props::-webkit-scrollbar { width: 4px; }
+.ed-props::-webkit-scrollbar-thumb { background: var(--border); }
+
+.no-sel {
+  text-align: center; padding: 24px 12px;
+  color: var(--text2); font-size: 0.82rem; line-height: 1.6;
+}
+.no-sel-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+
+.prop-input {
+  background: var(--bg); border: 1.5px solid var(--border);
+  color: var(--text); padding: 6px 10px;
+  border-radius: 9px; font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem; width: 70px;
+}
+.prop-action {
+  width: 100%; padding: 8px; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 600;
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+  margin-bottom: 5px; text-align: center;
+}
+.prop-action:hover { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
+.prop-del { border-color: #fac5c8; color: var(--red); background: #fde8e8; }
+.prop-del:hover { background: #fac5c8; }
+
+/* Notification */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--text); color: white;
+  border-radius: 14px; padding: 14px 20px;
+  font-size: 0.88rem; font-weight: 600;
+  z-index: 99999;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  animation: toastIn 0.3s ease;
+  max-width: 320px;
+}
+.toast.green { background: var(--green); }
+.toast.red { background: var(--red); }
+@keyframes toastIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+/* import zone in editor */
+.import-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.8rem;
+  color: var(--text2);
+  font-weight: 600;
+  margin: 8px 0;
+}
+.import-zone:hover { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
+
+.page-preset-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.pp-btn {
+  padding: 7px; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 0.78rem; font-weight: 700; color: var(--text2);
+  cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.pp-btn:hover, .pp-btn.active { border-color: var(--blue); color: var(--blue); background: #eef1ff; }
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
-  <div class="logo">PDF<span> Studio</span> Pro</div>
-  <div class="tabs">
-    <button class="tab active" onclick="showPage('converter')">📄 Convertir en PDF</button>
-    <button class="tab" onclick="showPage('editor')">✏️ Éditeur de documents</button>
+  <div class="logo">
+    <div class="logo-icon">📄</div>
+    <span class="logo-text">PDF Studio</span>
   </div>
-  <div style="width:160px"></div>
+  <nav class="nav">
+    <button class="nav-tab active" onclick="goPage('convert')">📂 Convertir & Fusionner</button>
+    <button class="nav-tab" onclick="goPage('editor')">✏️ Éditeur</button>
+  </nav>
+  <div style="width:180px"></div>
 </header>
 
-<!-- CONVERTER PAGE -->
-<div class="page active" id="page-converter">
-  <div class="converter-layout">
-    <div>
-      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <div class="drop-icon">📂</div>
-        <div class="drop-title">Déposez vos fichiers ici</div>
-        <div class="drop-sub">Ou cliquez pour parcourir vos fichiers<br>Tous les formats sont acceptés</div>
-        <div class="formats">
-          <span class="fmt-badge">JPG</span><span class="fmt-badge">PNG</span>
-          <span class="fmt-badge">HEIC</span><span class="fmt-badge">WebP</span>
-          <span class="fmt-badge">GIF</span><span class="fmt-badge">BMP</span>
-          <span class="fmt-badge">TIFF</span><span class="fmt-badge">DOC/DOCX</span>
-          <span class="fmt-badge">TXT</span><span class="fmt-badge">HTML</span>
-          <span class="fmt-badge">PDF</span>
-        </div>
-        <button class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
-          <span>＋</span> Sélectionner des fichiers
-        </button>
-        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.html,.htm,.heic,.heif,.webp" onchange="handleFiles(this.files)">
-      </div>
+<!-- ══════════ PAGE CONVERTER ══════════ -->
+<div class="page active" id="page-convert">
 
-      <div style="margin-top:20px; background:var(--surface); border-radius:16px; border:1px solid var(--border); padding:20px;">
-        <div class="section-label" style="margin-bottom:12px">Options de conversion</div>
-        <div class="prop-row">
-          <span class="prop-label">Format de page</span>
-          <select id="pageFormat" style="width:120px">
-            <option value="a4">A4</option>
-            <option value="a3">A3</option>
-            <option value="letter">Letter</option>
-            <option value="legal">Legal</option>
-          </select>
-        </div>
-        <div class="prop-row">
-          <span class="prop-label">Orientation</span>
-          <select id="pageOrient" style="width:120px">
-            <option value="portrait">Portrait</option>
-            <option value="landscape">Paysage</option>
-          </select>
-        </div>
-        <div class="prop-row">
-          <span class="prop-label">Qualité image</span>
-          <input type="range" id="imgQuality" min="0.5" max="1" step="0.05" value="0.92" oninput="document.getElementById('qualVal').textContent=Math.round(this.value*100)+'%'">
-          <span class="prop-val" id="qualVal">92%</span>
-        </div>
-        <div class="prop-row">
-          <span class="prop-label">Marges (mm)</span>
-          <input type="number" id="pageMargin" value="10" min="0" max="50" style="width:70px">
-        </div>
+  <div class="section-title">📂 Vos fichiers → PDF</div>
+  <p class="section-sub">Glissez vos fichiers, réorganisez-les dans l'ordre voulu, puis convertissez ou fusionnez en un seul PDF.</p>
+
+  <!-- DROP ZONE -->
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileIn').click()">
+    <span class="dz-emoji">📥</span>
+    <div class="dz-title">Déposez vos fichiers ici</div>
+    <div class="dz-sub">Ou cliquez pour parcourir vos fichiers sur votre ordinateur</div>
+    <div class="format-pills">
+      <span class="pill pill-img">JPG</span>
+      <span class="pill pill-img">PNG</span>
+      <span class="pill pill-img">WebP</span>
+      <span class="pill pill-img">HEIC</span>
+      <span class="pill pill-img">GIF</span>
+      <span class="pill pill-doc">DOC/DOCX</span>
+      <span class="pill pill-pdf">PDF</span>
+      <span class="pill pill-txt">TXT</span>
+      <span class="pill pill-txt">HTML</span>
+    </div>
+    <button class="btn btn-blue" onclick="event.stopPropagation(); document.getElementById('fileIn').click()">
+      ＋ Choisir des fichiers
+    </button>
+    <input type="file" id="fileIn" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.txt,.html,.htm" onchange="addFiles(this.files)">
+  </div>
+
+  <!-- OPTIONS -->
+  <div class="options-row">
+    <div class="opt-card">
+      <div class="opt-label">📄 Format de page</div>
+      <select id="optFmt">
+        <option value="a4">A4 (210×297mm)</option>
+        <option value="a3">A3 (297×420mm)</option>
+        <option value="letter">Letter (US)</option>
+        <option value="legal">Legal (US)</option>
+      </select>
+    </div>
+    <div class="opt-card">
+      <div class="opt-label">↔️ Orientation</div>
+      <select id="optOri">
+        <option value="portrait">Portrait</option>
+        <option value="landscape">Paysage</option>
+      </select>
+    </div>
+    <div class="opt-card">
+      <div class="opt-label">🔲 Marges (mm)</div>
+      <input type="number" id="optMargin" value="10" min="0" max="50" style="width:100%">
+    </div>
+    <div class="opt-card">
+      <div class="opt-label">📦 Fusion en 1 PDF</div>
+      <div class="toggle-row">
+        <button class="toggle on" id="mergeToggle" onclick="toggleMerge()"></button>
+        <span class="toggle-label" id="mergeLabel">Activée</span>
       </div>
     </div>
+  </div>
 
-    <div class="file-panel">
-      <div class="file-panel-header">
-        <span class="file-panel-title">Fichiers <span class="badge-count" id="fileCount">0</span></span>
-        <button class="btn btn-ghost" style="padding:6px 12px;font-size:0.8rem" onclick="clearAll()">Tout effacer</button>
-      </div>
-      <div class="file-list" id="fileList">
-        <div class="empty-state">Aucun fichier ajouté.<br>Déposez vos fichiers à gauche.</div>
-      </div>
-      <div class="panel-footer">
-        <div class="progress-bar" id="progressBar" style="display:none">
-          <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <button class="btn btn-primary convert-all-btn" onclick="convertAll()">
-          🔄 Convertir tout en PDF
-        </button>
-        <button class="btn btn-success convert-all-btn" id="downloadAllBtn" style="display:none" onclick="downloadAll()">
-          ⬇️ Télécharger tous les PDF
-        </button>
-      </div>
+  <!-- FILE LIST -->
+  <div class="files-header">
+    <div class="files-label">
+      Fichiers
+      <span class="count-badge" id="countBadge">0</span>
     </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="hint-text">⠿ Glissez les cartes pour changer l'ordre</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearAll()">Tout effacer</button>
+    </div>
+  </div>
+
+  <div id="fileCards">
+    <div class="empty-state" id="emptyState">
+      <span class="empty-state-icon">📋</span>
+      Aucun fichier ajouté.<br>Glissez des fichiers ou cliquez sur la zone ci-dessus.
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label">⚙️ <span id="progressLabel">Conversion en cours...</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-step" id="progressStep"></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions-bar">
+    <button class="btn btn-blue" onclick="runConvert()" id="convertBtn">
+      🔄 Convertir en PDF
+    </button>
+    <button class="btn btn-green" onclick="downloadAll()" id="dlBtn" style="display:none">
+      ⬇️ Télécharger
+    </button>
+    <div class="actions-bar-sep"></div>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileIn').click()">＋ Ajouter des fichiers</button>
   </div>
 </div>
 
-<!-- EDITOR PAGE -->
+<!-- ══════════ PAGE EDITOR ══════════ -->
 <div class="page" id="page-editor">
-  <div class="editor-layout">
+  <div class="editor-wrap">
 
-    <!-- LEFT SIDEBAR: TOOLS -->
-    <div class="editor-sidebar">
-      <div class="editor-sidebar-section">
-        <div class="section-label">Outils</div>
-        <div class="tool-grid">
-          <button class="tool-btn active" id="tool-select" onclick="setTool('select')">
-            <span class="tool-icon">🖱️</span> Sélection
-          </button>
-          <button class="tool-btn" id="tool-text" onclick="setTool('text')">
-            <span class="tool-icon">T</span> Texte
-          </button>
-          <button class="tool-btn" id="tool-rect" onclick="setTool('rect')">
-            <span class="tool-icon">▭</span> Rectangle
-          </button>
-          <button class="tool-btn" id="tool-circle" onclick="setTool('circle')">
-            <span class="tool-icon">○</span> Cercle
-          </button>
-          <button class="tool-btn" id="tool-line" onclick="setTool('line')">
-            <span class="tool-icon">╱</span> Ligne
-          </button>
-          <button class="tool-btn" id="tool-arrow" onclick="addArrow()">
-            <span class="tool-icon">→</span> Flèche
-          </button>
-          <button class="tool-btn" id="tool-draw" onclick="setTool('draw')">
-            <span class="tool-icon">✏️</span> Dessin libre
-          </button>
-          <button class="tool-btn" id="tool-erase" onclick="setTool('erase')">
-            <span class="tool-icon">⬜</span> Gomme
-          </button>
+    <!-- LEFT: tools -->
+    <div class="ed-sidebar">
+
+      <div class="sidebar-section">
+        <div class="ss-label">Outils</div>
+        <div class="tools-grid">
+          <button class="t-btn active" id="tb-select" onclick="setTool('select')"><span class="ti">🖱️</span>Sélection</button>
+          <button class="t-btn" id="tb-text" onclick="setTool('text')"><span class="ti" style="font-weight:900;font-size:1.3rem">T</span>Texte</button>
+          <button class="t-btn" id="tb-rect" onclick="setTool('rect')"><span class="ti">▭</span>Rectangle</button>
+          <button class="t-btn" id="tb-circle" onclick="setTool('circle')"><span class="ti">○</span>Cercle</button>
+          <button class="t-btn" id="tb-line" onclick="setTool('line')"><span class="ti">╱</span>Ligne</button>
+          <button class="t-btn" id="tb-arrow" onclick="addArrow()"><span class="ti">➜</span>Flèche</button>
+          <button class="t-btn" id="tb-draw" onclick="setTool('draw')"><span class="ti">✏️</span>Dessin libre</button>
+          <button class="t-btn" id="tb-erase" onclick="setTool('erase')"><span class="ti">🧹</span>Gomme</button>
         </div>
       </div>
 
-      <div class="sidebar-scroll">
-        <div class="editor-sidebar-section">
-          <div class="section-label">Symboles & Emojis</div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px">
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('✓')">✓</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('✗')">✗</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('★')">★</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('⬆')">⬆</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('⬇')">⬇</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('!')">!</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('?')">?</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('©')">©</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('®')">®</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('™')">™</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('📌')">📌</button>
-            <button class="tool-btn" style="padding:6px;font-size:1.1rem;flex:0 0 auto;width:36px" onclick="addSymbol('📎')">📎</button>
-          </div>
+      <div class="sidebar-section">
+        <div class="ss-label">Symboles</div>
+        <div class="sym-grid">
+          <button class="sym-btn" onclick="addSym('✓')">✓</button>
+          <button class="sym-btn" onclick="addSym('✗')">✗</button>
+          <button class="sym-btn" onclick="addSym('★')">★</button>
+          <button class="sym-btn" onclick="addSym('!')">!</button>
+          <button class="sym-btn" onclick="addSym('?')">?</button>
+          <button class="sym-btn" onclick="addSym('➜')">➜</button>
+          <button class="sym-btn" onclick="addSym('⬆')">⬆</button>
+          <button class="sym-btn" onclick="addSym('⬇')">⬇</button>
+          <button class="sym-btn" onclick="addSym('©')">©</button>
+          <button class="sym-btn" onclick="addSym('®')">®</button>
+          <button class="sym-btn" onclick="addSym('™')">™</button>
+          <button class="sym-btn" onclick="addSym('📌')">📌</button>
         </div>
+      </div>
 
-        <div class="editor-sidebar-section">
-          <div class="section-label">Couleur de remplissage</div>
-          <div class="color-palette" id="fillPalette">
-            <div class="color-swatch selected" style="background:#4f7cff" data-color="#4f7cff" onclick="selectFillColor(this)"></div>
-            <div class="color-swatch" style="background:#2dd68c" data-color="#2dd68c" onclick="selectFillColor(this)"></div>
-            <div class="color-swatch" style="background:#ff4f6a" data-color="#ff4f6a" onclick="selectFillColor(this)"></div>
-            <div class="color-swatch" style="background:#ffd166" data-color="#ffd166" onclick="selectFillColor(this)"></div>
-            <div class="color-swatch" style="background:#7c4fff" data-color="#7c4fff" onclick="selectFillColor(this)"></div>
-            <div class="color-swatch" style="background:#ffffff" data-color="#ffffff" onclick="selectFillColor(this)" style="border:1px solid #444"></div>
-            <div class="color-swatch" style="background:#000000" data-color="#000000" onclick="selectFillColor(this)"></div>
-            <div class="color-swatch" style="background:transparent;border:1px dashed #666" data-color="transparent" onclick="selectFillColor(this)"></div>
-          </div>
-          <div class="color-input-row">
-            <input type="color" id="fillColorPicker" value="#4f7cff" onchange="setFillColor(this.value)">
-            <span style="font-size:0.8rem;color:var(--text2)">Couleur personnalisée</span>
-          </div>
+      <div class="sidebar-section">
+        <div class="ss-label">Couleur de remplissage</div>
+        <div class="swatch-row" id="fillSwatches">
+          <div class="swatch sel" style="background:#4361ee" data-c="#4361ee" onclick="pickFill(this)"></div>
+          <div class="swatch" style="background:#e63946" data-c="#e63946" onclick="pickFill(this)"></div>
+          <div class="swatch" style="background:#2ec4b6" data-c="#2ec4b6" onclick="pickFill(this)"></div>
+          <div class="swatch" style="background:#ff9f1c" data-c="#ff9f1c" onclick="pickFill(this)"></div>
+          <div class="swatch" style="background:#7b5ea7" data-c="#7b5ea7" onclick="pickFill(this)"></div>
+          <div class="swatch" style="background:#000000" data-c="#000000" onclick="pickFill(this)"></div>
+          <div class="swatch" style="background:#ffffff;border:1.5px solid #ddd" data-c="#ffffff" onclick="pickFill(this)"></div>
+          <div class="swatch swatch-transparent" data-c="transparent" onclick="pickFill(this)" title="Transparent"></div>
         </div>
-
-        <div class="editor-sidebar-section">
-          <div class="section-label">Couleur du trait</div>
-          <div class="color-palette" id="strokePalette">
-            <div class="color-swatch selected" style="background:#ffffff" data-color="#ffffff" onclick="selectStrokeColor(this)"></div>
-            <div class="color-swatch" style="background:#4f7cff" data-color="#4f7cff" onclick="selectStrokeColor(this)"></div>
-            <div class="color-swatch" style="background:#ff4f6a" data-color="#ff4f6a" onclick="selectStrokeColor(this)"></div>
-            <div class="color-swatch" style="background:#000000" data-color="#000000" onclick="selectStrokeColor(this)"></div>
-            <div class="color-swatch" style="background:transparent;border:1px dashed #666" data-color="transparent" onclick="selectStrokeColor(this)"></div>
-          </div>
-          <div class="color-input-row">
-            <input type="color" id="strokeColorPicker" value="#ffffff" onchange="setStrokeColor(this.value)">
-            <span style="font-size:0.8rem;color:var(--text2)">Couleur personnalisée</span>
-          </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="fillPicker" value="#4361ee" onchange="setFill(this.value)">
+          <span style="font-size:0.78rem;color:var(--text2)">Personnalisée</span>
         </div>
+      </div>
 
-        <div class="editor-sidebar-section">
-          <div class="section-label">Épaisseur du trait</div>
-          <div class="prop-row">
-            <span class="prop-label">Épaisseur</span>
-            <input type="range" id="strokeWidth" min="0" max="20" value="2" oninput="updateStrokeWidth(this.value)">
-            <span class="prop-val" id="strokeWidthVal">2</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Opacité</span>
-            <input type="range" id="objOpacity" min="0" max="1" step="0.05" value="1" oninput="updateOpacity(this.value)">
-            <span class="prop-val" id="opacityVal">100%</span>
-          </div>
+      <div class="sidebar-section">
+        <div class="ss-label">Couleur du contour</div>
+        <div class="swatch-row" id="strokeSwatches">
+          <div class="swatch sel" style="background:#1a1d2e" data-c="#1a1d2e" onclick="pickStroke(this)"></div>
+          <div class="swatch" style="background:#4361ee" data-c="#4361ee" onclick="pickStroke(this)"></div>
+          <div class="swatch" style="background:#e63946" data-c="#e63946" onclick="pickStroke(this)"></div>
+          <div class="swatch" style="background:#ffffff;border:1.5px solid #ddd" data-c="#ffffff" onclick="pickStroke(this)"></div>
+          <div class="swatch swatch-transparent" data-c="transparent" onclick="pickStroke(this)" title="Aucun"></div>
         </div>
-
-        <div class="editor-sidebar-section">
-          <div class="section-label">Texte</div>
-          <div class="prop-row" style="margin-bottom:8px">
-            <span class="prop-label">Police</span>
-            <select id="fontFamily" onchange="updateText()" style="width:140px">
-              <option>Arial</option>
-              <option>Times New Roman</option>
-              <option>Courier New</option>
-              <option>Georgia</option>
-              <option>Verdana</option>
-              <option>Helvetica</option>
-              <option>Comic Sans MS</option>
-              <option>Impact</option>
-            </select>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Taille</span>
-            <input type="range" id="fontSize" min="8" max="120" value="24" oninput="document.getElementById('fontSizeVal').textContent=this.value; updateText()">
-            <span class="prop-val" id="fontSizeVal">24</span>
-          </div>
-          <div class="text-style-row">
-            <button class="style-toggle" id="boldBtn" onclick="toggleBold()"><strong>B</strong></button>
-            <button class="style-toggle" id="italicBtn" onclick="toggleItalic()"><em>I</em></button>
-            <button class="style-toggle" id="underlineBtn" onclick="toggleUnderline()"><u>U</u></button>
-          </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="strokePicker" value="#1a1d2e" onchange="setStroke(this.value)">
+          <span style="font-size:0.78rem;color:var(--text2)">Personnalisée</span>
         </div>
+      </div>
 
-        <div class="editor-sidebar-section">
-          <div class="section-label">Page & Document</div>
-          <div class="section-label" style="margin-top:6px;margin-bottom:6px">Format</div>
-          <div class="page-sizes">
-            <div class="size-btn active" onclick="setCanvasSize('a4',this)">A4</div>
-            <div class="size-btn" onclick="setCanvasSize('a3',this)">A3</div>
-            <div class="size-btn" onclick="setCanvasSize('letter',this)">Letter</div>
-            <div class="size-btn" onclick="setCanvasSize('wide',this)">16:9</div>
-          </div>
-          <div class="editor-upload-zone" onclick="document.getElementById('editorImgInput').click()">
-            🖼️ Importer une image / PDF
-          </div>
-          <input type="file" id="editorImgInput" style="display:none" accept="image/*,.pdf" onchange="importToEditor(this.files[0])">
+      <div class="sidebar-section">
+        <div class="ss-label">Épaisseur & opacité</div>
+        <div class="prop-row2">
+          <span class="pr-label">Contour</span>
+          <input type="range" id="swInput" min="0" max="20" value="2" oninput="updateSW(this.value)">
+          <span class="pr-val" id="swVal">2</span>
+        </div>
+        <div class="prop-row2">
+          <span class="pr-label">Opacité</span>
+          <input type="range" id="opInput" min="0.05" max="1" step="0.05" value="1" oninput="updateOp(this.value)">
+          <span class="pr-val" id="opVal">100%</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="ss-label">Texte</div>
+        <select class="font-select" id="fontSel" onchange="applyFont()">
+          <option>Arial</option><option>Times New Roman</option>
+          <option>Courier New</option><option>Georgia</option>
+          <option>Verdana</option><option>Impact</option>
+        </select>
+        <div class="prop-row2">
+          <span class="pr-label">Taille</span>
+          <input type="range" id="fsInput" min="8" max="120" value="24" oninput="document.getElementById('fsVal').textContent=this.value;applyFont()">
+          <span class="pr-val" id="fsVal">24</span>
+        </div>
+        <div class="style-btns">
+          <button class="st-btn" id="boldBtn" onclick="toggleBold()"><strong>G</strong></button>
+          <button class="st-btn" id="italicBtn" onclick="toggleItalic()"><em>I</em></button>
+          <button class="st-btn" id="underBtn" onclick="toggleUnder()"><u>S</u></button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="ss-label">Page</div>
+        <div class="page-preset-btns">
+          <div class="pp-btn active" onclick="setPage('a4',this)">A4</div>
+          <div class="pp-btn" onclick="setPage('a3',this)">A3</div>
+          <div class="pp-btn" onclick="setPage('letter',this)">Letter</div>
+          <div class="pp-btn" onclick="setPage('16:9',this)">16:9</div>
+        </div>
+        <div class="import-zone" onclick="document.getElementById('edImport').click()">
+          🖼️ Importer image / PDF
+        </div>
+        <input type="file" id="edImport" style="display:none" accept="image/*,.pdf" onchange="importDoc(this.files[0])">
+      </div>
+    </div>
+
+    <!-- CENTER: canvas -->
+    <div class="ed-canvas-zone">
+      <div class="ed-toolbar">
+        <button class="tb-btn" onclick="undoEd()">↩ Annuler</button>
+        <button class="tb-btn" onclick="redoEd()">↪ Rétablir</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" onclick="dupeSel()">⧉ Dupliquer</button>
+        <button class="tb-btn" onclick="delSel()">🗑 Supprimer</button>
+        <button class="tb-btn" onclick="canvas.bringForward(canvas.getActiveObject());canvas.renderAll()">↑ Avant</button>
+        <button class="tb-btn" onclick="canvas.sendBackwards(canvas.getActiveObject());canvas.renderAll()">↓ Arrière</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" onclick="clearEd()">✕ Effacer tout</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn tb-export" onclick="exportPDF()">⬇ Exporter PDF</button>
+        <button class="tb-btn" onclick="exportPNG()" style="color:var(--blue)">⬇ PNG</button>
+      </div>
+      <div class="canvas-scroll">
+        <canvas id="mainCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- RIGHT: properties -->
+    <div class="ed-props">
+      <div class="ss-label">Propriétés</div>
+      <div class="no-sel" id="noSelMsg">
+        <span class="no-sel-icon">👆</span>
+        Cliquez sur un objet pour voir et modifier ses propriétés.
+      </div>
+      <div id="selProps" style="display:none">
+        <div class="prop-row2" style="margin-bottom:8px"><span class="pr-label" style="width:auto">X</span><input class="prop-input" type="number" id="pX" oninput="moveSel()"></div>
+        <div class="prop-row2" style="margin-bottom:8px"><span class="pr-label" style="width:auto">Y</span><input class="prop-input" type="number" id="pY" oninput="moveSel()"></div>
+        <div class="prop-row2" style="margin-bottom:8px"><span class="pr-label" style="width:auto">L</span><input class="prop-input" type="number" id="pW" oninput="sizeSel()"></div>
+        <div class="prop-row2" style="margin-bottom:14px"><span class="pr-label" style="width:auto">H</span><input class="prop-input" type="number" id="pH" oninput="sizeSel()"></div>
+        <div class="prop-row2">
+          <span class="pr-label" style="width:auto">Rotation</span>
+          <input type="range" id="pRot" min="-180" max="180" value="0" oninput="document.getElementById('pRotV').textContent=this.value+'°';rotSel()">
+          <span class="pr-val" id="pRotV">0°</span>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:14px 0;padding-top:14px">
+          <button class="prop-action" onclick="centerSel('h')">↔ Centrer horiz.</button>
+          <button class="prop-action" onclick="centerSel('v')">↕ Centrer vert.</button>
+          <button class="prop-action prop-del" onclick="delSel()">🗑 Supprimer</button>
         </div>
       </div>
     </div>
 
-    <!-- CANVAS AREA -->
-    <div class="editor-canvas-area">
-      <div class="editor-toolbar">
-        <button class="toolbar-btn" onclick="canvas.undo ? undoAction() : null" title="Annuler">↩ Annuler</button>
-        <button class="toolbar-btn" onclick="redoAction()" title="Rétablir">↪ Rétablir</button>
-        <div class="toolbar-sep"></div>
-        <button class="toolbar-btn" onclick="bringForward()">⬆ Avant</button>
-        <button class="toolbar-btn" onclick="sendBackward()">⬇ Arrière</button>
-        <div class="toolbar-sep"></div>
-        <button class="toolbar-btn" onclick="duplicateSelected()">⧉ Dupliquer</button>
-        <button class="toolbar-btn" onclick="deleteSelected()" style="color:var(--danger)">🗑 Supprimer</button>
-        <div class="toolbar-sep"></div>
-        <button class="toolbar-btn" onclick="clearCanvas()" style="color:var(--danger)">✕ Tout effacer</button>
-        <div class="toolbar-sep"></div>
-        <button class="toolbar-btn" onclick="exportCanvasAsPDF()" style="color:var(--success);font-weight:600">⬇ Exporter PDF</button>
-        <button class="toolbar-btn" onclick="exportCanvasAsPNG()" style="color:var(--accent)">⬇ Exporter PNG</button>
-      </div>
-      <div class="canvas-wrapper" id="canvasWrapper">
-        <canvas id="fabricCanvas"></canvas>
-      </div>
-    </div>
+  </div>
+</div>
 
-    <!-- RIGHT PANEL: PROPERTIES -->
-    <div class="props-panel" id="propsPanel">
-      <div class="section-label">Propriétés de l'objet</div>
-      <div class="no-selection" id="noSelMsg">Sélectionnez un objet<br>pour voir ses propriétés.</div>
-      <div id="objProps" style="display:none">
-        <div class="prop-row" style="margin-bottom:12px">
-          <span class="prop-label">X</span>
-          <input type="number" id="propX" style="width:70px" oninput="updateObjPos()">
-        </div>
-        <div class="prop-row" style="margin-bottom:12px">
-          <span class="prop-label">Y</span>
-          <input type="number" id="propY" style="width:70px" oninput="updateObjPos()">
-        </div>
-        <div class="prop-row" style="margin-bottom:12px">
-          <span class="prop-label">Largeur</span>
-          <input type="number" id="propW" style="width:70px" oninput="updateObjSize()">
-        </div>
-        <div class="prop-row" style="margin-bottom:12px">
-          <span class="prop-label">Hauteur</span>
-          <input type="number" id="propH" style="width:70px" oninput="updateObjSize()">
-        </div>
-        <div class="prop-row" style="margin-bottom:12px">
-          <span class="prop-label">Rotation</span>
-          <input type="range" id="propRot" min="-180" max="180" value="0" oninput="document.getElementById('propRotVal').textContent=this.value+'°'; updateObjRot()">
-          <span class="prop-val" id="propRotVal">0°</span>
-        </div>
-        <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
-          <div class="section-label" style="margin-bottom:8px">Actions rapides</div>
-          <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;justify-content:center" onclick="centerObj('h')">↔ Centrer horizontalement</button>
-          <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;justify-content:center" onclick="centerObj('v')">↕ Centrer verticalement</button>
-          <button class="btn btn-danger" style="width:100%;justify-content:center" onclick="deleteSelected()">🗑 Supprimer</button>
-        </div>
-      </div>
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <span class="modal-icon" id="modalIcon">🎉</span>
+    <div class="modal-title" id="modalTitle">Succès !</div>
+    <p class="modal-sub" id="modalSub"></p>
+    <div class="modal-btns">
+      <button class="btn btn-green" id="modalDl" onclick="downloadAll()">⬇️ Télécharger</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
     </div>
   </div>
 </div>
 
 <script>
-// ===================== CONVERTER =====================
-const fileMap = new Map();
-const convertedPDFs = new Map();
-let fileIdCounter = 0;
+// ─────────────────────────────────────────────
+// CONVERTER
+// ─────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+let files = []; // [{id, file, status, blob, thumbUrl}]
+let fid = 0;
+let mergeOn = true;
+let convertedBlobs = []; // for download
+let dragSrcIdx = null;
 
-function handleFiles(files) {
-  Array.from(files).forEach(file => {
-    const id = fileIdCounter++;
-    fileMap.set(id, { file, status: 'ready' });
-    renderFileItem(id, file);
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('over'); addFiles(e.dataTransfer.files); });
+
+function addFiles(list) {
+  Array.from(list).forEach(f => {
+    files.push({ id: fid++, file: f, status: 'ready', blob: null, thumbUrl: null });
   });
+  renderCards();
   updateCount();
-}
-
-function getFileIcon(file) {
-  const t = file.type;
-  if (t.startsWith('image/')) return { icon: '🖼️', cls: 'img' };
-  if (t === 'application/pdf') return { icon: '📄', cls: 'pdf' };
-  if (t.includes('word') || file.name.match(/\.docx?$/i)) return { icon: '📝', cls: 'doc' };
-  if (t === 'text/plain') return { icon: '📃', cls: 'doc' };
-  if (t === 'text/html') return { icon: '🌐', cls: 'doc' };
-  return { icon: '📁', cls: 'other' };
-}
-
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / 1048576).toFixed(1) + ' MB';
-}
-
-function renderFileItem(id, file) {
-  const list = document.getElementById('fileList');
-  const empty = list.querySelector('.empty-state');
-  if (empty) empty.remove();
-
-  const { icon, cls } = getFileIcon(file);
-  const el = document.createElement('div');
-  el.className = 'file-item';
-  el.id = `fi-${id}`;
-  el.innerHTML = `
-    <div class="file-icon ${cls}">${icon}</div>
-    <div class="file-info">
-      <div class="file-name">${file.name}</div>
-      <div class="file-size">${formatSize(file.size)}</div>
-    </div>
-    <span class="file-status status-ready" id="fs-${id}">Prêt</span>
-    <button class="file-remove" onclick="removeFile(${id})">✕</button>
-  `;
-  list.appendChild(el);
-}
-
-function removeFile(id) {
-  fileMap.delete(id);
-  convertedPDFs.delete(id);
-  const el = document.getElementById(`fi-${id}`);
-  if (el) el.remove();
-  updateCount();
-  const list = document.getElementById('fileList');
-  if (list.children.length === 0) list.innerHTML = '<div class="empty-state">Aucun fichier ajouté.<br>Déposez vos fichiers à gauche.</div>';
 }
 
 function clearAll() {
-  fileMap.clear();
-  convertedPDFs.clear();
-  document.getElementById('fileList').innerHTML = '<div class="empty-state">Aucun fichier ajouté.<br>Déposez vos fichiers à gauche.</div>';
+  files = [];
+  convertedBlobs = [];
+  renderCards();
   updateCount();
-  document.getElementById('downloadAllBtn').style.display = 'none';
+  document.getElementById('dlBtn').style.display = 'none';
 }
 
 function updateCount() {
-  document.getElementById('fileCount').textContent = fileMap.size;
+  document.getElementById('countBadge').textContent = files.length;
 }
 
-async function convertAll() {
-  if (fileMap.size === 0) { showNotif('Ajoutez des fichiers à convertir.', 'error'); return; }
-  const ids = [...fileMap.keys()];
-  const bar = document.getElementById('progressBar');
-  const fill = document.getElementById('progressFill');
-  bar.style.display = 'block';
-  let done = 0;
+function toggleMerge() {
+  mergeOn = !mergeOn;
+  const t = document.getElementById('mergeToggle');
+  t.classList.toggle('on', mergeOn);
+  document.getElementById('mergeLabel').textContent = mergeOn ? 'Activée' : 'Désactivée';
+}
 
-  for (const id of ids) {
-    const { file } = fileMap.get(id);
-    const statusEl = document.getElementById(`fs-${id}`);
-    try {
-      statusEl.className = 'file-status status-ready';
-      statusEl.textContent = '...';
-      const pdfBlob = await fileToPDF(file, id);
-      convertedPDFs.set(id, { blob: pdfBlob, name: file.name.replace(/\.[^.]+$/, '') + '.pdf' });
-      statusEl.className = 'file-status status-done';
-      statusEl.textContent = '✓ Converti';
-    } catch (e) {
-      statusEl.className = 'file-status status-error';
-      statusEl.textContent = '✗ Erreur';
-      console.error(e);
-    }
-    done++;
-    fill.style.width = (done / ids.length * 100) + '%';
+// ── RENDER CARDS ──
+function renderCards() {
+  const container = document.getElementById('fileCards');
+  const empty = document.getElementById('emptyState');
+  container.innerHTML = '';
+  if (files.length === 0) {
+    container.appendChild(Object.assign(document.createElement('div'), {
+      className: 'empty-state', id: 'emptyState',
+      innerHTML: '<span class="empty-state-icon">📋</span>Aucun fichier ajouté.<br>Glissez des fichiers ou cliquez sur la zone ci-dessus.'
+    }));
+    return;
   }
 
-  setTimeout(() => { bar.style.display = 'none'; fill.style.width = '0%'; }, 800);
-  document.getElementById('downloadAllBtn').style.display = 'flex';
-  showNotif(`✓ ${convertedPDFs.size} fichier(s) convertis !`, 'success');
+  files.forEach((f, idx) => {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.draggable = true;
+    card.dataset.idx = idx;
+
+    const stClass = { ready:'st-ready', converting:'st-converting', done:'st-done', error:'st-error' }[f.status] || 'st-ready';
+    const stLabel = { ready:'Prêt', converting:'...', done:'✓ Converti', error:'✗ Erreur' }[f.status] || 'Prêt';
+
+    const thumbHTML = f.thumbUrl
+      ? `<img src="${f.thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`
+      : `<span style="font-size:1.6rem">${fileEmoji(f.file)}</span>`;
+
+    card.innerHTML = `
+      <div class="drag-handle" title="Glisser pour réordonner">⠿</div>
+      <div class="file-card-num">${idx + 1}</div>
+      <div class="file-thumb">${thumbHTML}</div>
+      <div class="file-card-info">
+        <div class="file-card-name" title="${f.file.name}">${f.file.name}</div>
+        <div class="file-card-meta">
+          <span>${fmtSize(f.file.size)}</span>
+          <span>${fileType(f.file)}</span>
+        </div>
+      </div>
+      <span class="file-card-status ${stClass}" id="st-${f.id}">${stLabel}</span>
+      <button class="card-remove" onclick="removeFile(${f.id})" title="Supprimer">✕</button>
+    `;
+
+    // DRAG EVENTS FOR REORDER
+    card.addEventListener('dragstart', e => {
+      dragSrcIdx = idx;
+      setTimeout(() => card.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); });
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      if (dragSrcIdx === null || dragSrcIdx === idx) return;
+      const moved = files.splice(dragSrcIdx, 1)[0];
+      files.splice(idx, 0, moved);
+      dragSrcIdx = null;
+      renderCards();
+    });
+
+    container.appendChild(card);
+
+    // Generate thumbnail if image
+    if (f.file.type.startsWith('image/') && !f.thumbUrl) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        f.thumbUrl = e.target.result;
+        const img = card.querySelector('.file-thumb');
+        if (img) img.innerHTML = `<img src="${f.thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+      };
+      reader.readAsDataURL(f.file);
+    }
+  });
 }
 
-async function fileToPDF(file, id) {
-  const { jsPDF } = window.jspdf;
-  const fmt = document.getElementById('pageFormat').value;
-  const ori = document.getElementById('pageOrient').value;
-  const quality = parseFloat(document.getElementById('imgQuality').value);
-  const margin = parseInt(document.getElementById('pageMargin').value) || 10;
-  const pdf = new jsPDF({ orientation: ori, unit: 'mm', format: fmt });
+function removeFile(id) {
+  files = files.filter(f => f.id !== id);
+  renderCards();
+  updateCount();
+  if (files.length === 0) document.getElementById('dlBtn').style.display = 'none';
+}
 
+function fileEmoji(f) {
+  if (f.type.startsWith('image/')) return '🖼️';
+  if (f.type === 'application/pdf') return '📄';
+  if (f.name.match(/\.docx?$/i)) return '📝';
+  if (f.type === 'text/plain') return '📃';
+  if (f.type === 'text/html') return '🌐';
+  return '📁';
+}
+function fileType(f) {
+  const ext = f.file.name.split('.').pop().toUpperCase();
+  return ext;
+}
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' Ko';
+  return (b/1048576).toFixed(1) + ' Mo';
+}
+
+// ── CONVERT ──
+async function runConvert() {
+  if (files.length === 0) { toast('Ajoutez d\'abord des fichiers !', 'red'); return; }
+
+  const pw = document.getElementById('progressWrap');
+  pw.classList.add('show');
+  setProgress(0, 'Démarrage...');
+  convertedBlobs = [];
+
+  const fmt = document.getElementById('optFmt').value;
+  const ori = document.getElementById('optOri').value;
+  const margin = parseInt(document.getElementById('optMargin').value) || 10;
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    setStatus(f.id, 'converting');
+    setProgress((i / files.length) * 80, `Conversion de ${f.file.name}…`);
+    try {
+      const blob = await toPDFBlob(f.file, fmt, ori, margin);
+      f.blob = blob;
+      f.status = 'done';
+      convertedBlobs.push({ blob, name: f.file.name.replace(/\.[^.]+$/, '') + '.pdf' });
+      setStatus(f.id, 'done');
+    } catch (e) {
+      f.status = 'error';
+      setStatus(f.id, 'error');
+      console.error(e);
+    }
+    renderCards();
+  }
+
+  setProgress(90, 'Finalisation…');
+
+  let finalBlobs = convertedBlobs;
+
+  if (mergeOn && convertedBlobs.length > 1) {
+    setProgress(95, 'Fusion des PDF…');
+    const merged = await mergePDFs(convertedBlobs.map(b => b.blob));
+    finalBlobs = [{ blob: merged, name: 'document-fusionne.pdf' }];
+    convertedBlobs = finalBlobs;
+  }
+
+  setProgress(100, 'Terminé !');
+  setTimeout(() => pw.classList.remove('show'), 600);
+
+  const successCount = files.filter(f => f.status === 'done').length;
+  const dlBtn = document.getElementById('dlBtn');
+  dlBtn.style.display = 'flex';
+  dlBtn.textContent = mergeOn && successCount > 1
+    ? `⬇️ Télécharger le PDF fusionné`
+    : `⬇️ Télécharger ${successCount} PDF`;
+
+  // Show modal
+  const isM = mergeOn && successCount > 1;
+  document.getElementById('modalIcon').textContent = isM ? '🎊' : '🎉';
+  document.getElementById('modalTitle').textContent = isM ? 'PDF fusionné prêt !' : `${successCount} PDF prêt${successCount > 1 ? 's' : ''} !`;
+  document.getElementById('modalSub').textContent = isM
+    ? `Vos ${successCount} fichiers ont été fusionnés en un seul PDF. Cliquez pour le télécharger.`
+    : `Vos fichiers ont bien été convertis en PDF. Cliquez pour les télécharger.`;
+  document.getElementById('modal').classList.add('show');
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressStep').textContent = label;
+}
+
+function setStatus(id, status) {
+  const el = document.getElementById(`st-${id}`);
+  if (!el) return;
+  const cls = { ready:'st-ready', converting:'st-converting', done:'st-done', error:'st-error' };
+  const lbl = { ready:'Prêt', converting:'⏳ En cours…', done:'✓ Converti', error:'✗ Erreur' };
+  el.className = 'file-card-status ' + (cls[status] || 'st-ready');
+  el.textContent = lbl[status] || 'Prêt';
+}
+
+async function toPDFBlob(file, fmt, ori, margin) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: ori, unit: 'mm', format: fmt });
   const pw = pdf.internal.pageSize.getWidth();
   const ph = pdf.internal.pageSize.getHeight();
 
-  if (file.type.startsWith('image/') || file.name.match(/\.(heic|heif)$/i)) {
-    return await imageFileToPDF(file, pdf, pw, ph, margin, quality);
+  if (file.type.startsWith('image/') || file.name.match(/\.(heic|heif|webp)$/i)) {
+    return await imgToPDF(file, pdf, pw, ph, margin);
   } else if (file.type === 'application/pdf') {
-    return await pdfToPDF(file, pdf, pw, ph, margin, quality);
+    return await pdfPassthrough(file, pdf, pw, ph, margin);
   } else if (file.type === 'text/plain') {
-    return textToPDF(file, pdf, pw, ph, margin);
+    return await textToPDF(file, pdf, pw, ph, margin);
   } else if (file.type === 'text/html' || file.name.match(/\.html?$/i)) {
-    return htmlToPDF(file, pdf, pw, ph, margin);
-  } else if (file.name.match(/\.docx?$/i)) {
-    // For .doc/.docx we render as text content
-    return docToPDF(file, pdf, pw, ph, margin);
+    return await htmlToPDF(file, pdf, pw, ph, margin);
   } else {
-    // Fallback: treat as text
-    return textToPDF(file, pdf, pw, ph, margin);
+    return await anyToPDF(file, pdf, pw, ph, margin);
   }
 }
 
-function imageFileToPDF(file, pdf, pw, ph, margin, quality) {
-  return new Promise((resolve, reject) => {
+function imgToPDF(file, pdf, pw, ph, margin) {
+  return new Promise((res, rej) => {
     const reader = new FileReader();
     reader.onload = e => {
       const img = new Image();
       img.onload = () => {
-        const usableW = pw - margin * 2;
-        const usableH = ph - margin * 2;
-        let imgW = usableW, imgH = img.height / img.width * usableW;
-        if (imgH > usableH) { imgH = usableH; imgW = img.width / img.height * usableH; }
-        const x = (pw - imgW) / 2;
-        const y = (ph - imgH) / 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        pdf.addImage(dataUrl, 'JPEG', x, y, imgW, imgH);
-        resolve(pdf.output('blob'));
+        const usW = pw - margin*2, usH = ph - margin*2;
+        let iw = usW, ih = img.height/img.width*usW;
+        if (ih > usH) { ih = usH; iw = img.width/img.height*usH; }
+        const cvs = document.createElement('canvas');
+        cvs.width = img.width; cvs.height = img.height;
+        cvs.getContext('2d').drawImage(img,0,0);
+        const du = cvs.toDataURL('image/jpeg', 0.92);
+        pdf.addImage(du,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);
+        res(pdf.output('blob'));
       };
-      img.onerror = reject;
+      img.onerror = rej;
       img.src = e.target.result;
     };
-    reader.onerror = reject;
+    reader.onerror = rej;
     reader.readAsDataURL(file);
   });
 }
 
-async function pdfToPDF(file, pdf, pw, ph, margin, quality) {
-  // Render PDF pages as images
-  const arrayBuffer = await file.arrayBuffer();
-  const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const numPages = pdfDoc.numPages;
-
-  for (let i = 1; i <= numPages; i++) {
+async function pdfPassthrough(file, pdf, pw, ph, margin) {
+  const ab = await file.arrayBuffer();
+  const pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
     if (i > 1) pdf.addPage();
     const page = await pdfDoc.getPage(i);
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    const usableW = pw - margin * 2;
-    const usableH = ph - margin * 2;
-    let imgW = usableW, imgH = canvas.height / canvas.width * usableW;
-    if (imgH > usableH) { imgH = usableH; imgW = canvas.width / canvas.height * usableH; }
-    pdf.addImage(dataUrl, 'JPEG', (pw - imgW) / 2, (ph - imgH) / 2, imgW, imgH);
+    const vp = page.getViewport({ scale: 2 });
+    const cvs = document.createElement('canvas');
+    cvs.width = vp.width; cvs.height = vp.height;
+    await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
+    const du = cvs.toDataURL('image/jpeg', 0.9);
+    const usW = pw-margin*2, usH = ph-margin*2;
+    let iw = usW, ih = cvs.height/cvs.width*usW;
+    if (ih > usH) { ih = usH; iw = cvs.width/cvs.height*usH; }
+    pdf.addImage(du,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);
   }
   return pdf.output('blob');
 }
 
 async function textToPDF(file, pdf, pw, ph, margin) {
-  const text = await file.text();
-  pdf.setFontSize(11);
-  pdf.setTextColor(40, 40, 40);
-  const lines = pdf.splitTextToSize(text, pw - margin * 2);
-  const lineHeight = 6;
+  const txt = await file.text();
+  pdf.setFontSize(11); pdf.setTextColor(30,30,30);
+  const lines = pdf.splitTextToSize(txt, pw - margin*2);
   let y = margin + 10;
-  lines.forEach(line => {
-    if (y + lineHeight > ph - margin) { pdf.addPage(); y = margin + 10; }
-    pdf.text(line, margin, y);
-    y += lineHeight;
+  lines.forEach(l => {
+    if (y + 6 > ph - margin) { pdf.addPage(); y = margin + 10; }
+    pdf.text(l, margin, y); y += 6;
   });
   return pdf.output('blob');
 }
 
 async function htmlToPDF(file, pdf, pw, ph, margin) {
-  const text = await file.text();
-  const tmp = document.createElement('div');
-  tmp.innerHTML = text;
-  const plain = tmp.innerText || tmp.textContent || '';
-  pdf.setFontSize(11);
-  const lines = pdf.splitTextToSize(plain, pw - margin * 2);
-  let y = margin + 10;
-  lines.forEach(line => {
-    if (y + 6 > ph - margin) { pdf.addPage(); y = margin + 10; }
-    pdf.text(line, margin, y);
-    y += 6;
-  });
-  return pdf.output('blob');
+  const txt = await file.text();
+  const div = document.createElement('div');
+  div.innerHTML = txt;
+  const plain = div.innerText || div.textContent || '';
+  return textToPDF({ text: () => Promise.resolve(plain) }, pdf, pw, ph, margin);
 }
 
-async function docToPDF(file, pdf, pw, ph, margin) {
-  // Read as arrayBuffer and extract text if possible
-  const arrayBuffer = await file.arrayBuffer();
-  let text = '';
+async function anyToPDF(file, pdf, pw, ph, margin) {
+  let txt = '';
   try {
-    // Try to extract readable text from binary
-    const uint8 = new Uint8Array(arrayBuffer);
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    const raw = decoder.decode(uint8);
-    // Extract readable strings
-    text = raw.replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ').replace(/\s{3,}/g, '\n').trim();
-    if (text.length < 50) text = 'Ce fichier Word a été converti.\nPour un rendu parfait, veuillez copier le contenu de votre document.';
-  } catch { text = 'Fichier Word converti en PDF.'; }
-  pdf.setFontSize(11);
-  const lines = pdf.splitTextToSize(text, pw - margin * 2);
-  let y = margin + 10;
-  lines.forEach(line => {
-    if (y + 6 > ph - margin) { pdf.addPage(); y = margin + 10; }
-    pdf.text(line, margin, y);
-    y += 6;
-  });
-  return pdf.output('blob');
+    const ab = await file.arrayBuffer();
+    txt = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(ab));
+    txt = txt.replace(/[^\x20-\x7E\xC0-\u024F\n\r\t]/g, ' ').replace(/\s{3,}/g, '\n').trim();
+    if (txt.length < 30) txt = `Fichier "${file.name}" converti.\n(Format non textuel)`;
+  } catch { txt = file.name; }
+  return textToPDF({ text: () => Promise.resolve(txt) }, pdf, pw, ph, margin);
+}
+
+// ── MERGE ──
+async function mergePDFs(blobs) {
+  const { jsPDF } = window.jspdf;
+  const mergedPdf = new jsPDF({ unit: 'px', format: 'a4' });
+  let first = true;
+
+  for (const blob of blobs) {
+    const ab = await blob.arrayBuffer();
+    const pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      if (!first) mergedPdf.addPage();
+      first = false;
+      const page = await pdfDoc.getPage(i);
+      const vp = page.getViewport({ scale: 2 });
+      const cvs = document.createElement('canvas');
+      cvs.width = vp.width; cvs.height = vp.height;
+      await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
+      mergedPdf.internal.pageSize.width = vp.width;
+      mergedPdf.internal.pageSize.height = vp.height;
+      mergedPdf.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, vp.width, vp.height);
+    }
+  }
+  return mergedPdf.output('blob');
 }
 
 function downloadAll() {
-  if (convertedPDFs.size === 0) { showNotif('Rien à télécharger.', 'error'); return; }
-  convertedPDFs.forEach(({ blob, name }) => {
+  if (convertedBlobs.length === 0) { toast('Rien à télécharger, convertissez d\'abord !', 'red'); return; }
+  convertedBlobs.forEach(({ blob, name }) => {
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
+    const a = Object.assign(document.createElement('a'), { href: url, download: name });
     a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   });
+  closeModal();
 }
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
 
-// ===================== EDITOR =====================
-const { jsPDF } = window.jspdf;
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// ─────────────────────────────────────────────
+// EDITOR
+// ─────────────────────────────────────────────
+let canvas, curTool = 'select', fillC = '#4361ee', strokeC = '#1a1d2e', sw = 2;
+let isDrawing = false, drawStart = null, tmpShape = null;
+let hist = [], hIdx = -1;
 
-let canvas;
-let currentTool = 'select';
-let fillColor = '#4f7cff';
-let strokeColor = '#ffffff';
-let strokeWidth = 2;
-let isDrawing = false;
-let drawStart = null;
-let tempShape = null;
-let history = [];
-let historyIndex = -1;
-
-function initCanvas() {
-  canvas = new fabric.Canvas('fabricCanvas', {
+function initEditor() {
+  canvas = new fabric.Canvas('mainCanvas', {
     backgroundColor: '#ffffff',
-    selection: true,
     preserveObjectStacking: true,
   });
-  setCanvasSize('a4', document.querySelector('.size-btn.active'));
+  setPage('a4', document.querySelector('.pp-btn.active'));
 
-  canvas.on('object:added', saveHistory);
-  canvas.on('object:modified', saveHistory);
-  canvas.on('object:removed', saveHistory);
-
-  canvas.on('selection:created', updatePropsPanel);
-  canvas.on('selection:updated', updatePropsPanel);
+  canvas.on('object:added', saveH);
+  canvas.on('object:modified', saveH);
+  canvas.on('object:removed', saveH);
+  canvas.on('selection:created', showProps);
+  canvas.on('selection:updated', showProps);
   canvas.on('selection:cleared', () => {
     document.getElementById('noSelMsg').style.display = 'block';
-    document.getElementById('objProps').style.display = 'none';
+    document.getElementById('selProps').style.display = 'none';
   });
-
-  canvas.on('mouse:down', onMouseDown);
-  canvas.on('mouse:move', onMouseMove);
-  canvas.on('mouse:up', onMouseUp);
+  canvas.on('mouse:down', mDown);
+  canvas.on('mouse:move', mMove);
+  canvas.on('mouse:up', mUp);
 }
 
-function setCanvasSize(preset, el) {
-  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+function setPage(p, el) {
+  document.querySelectorAll('.pp-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
-  const sizes = {
-    a4: [794, 1123], a3: [1123, 1587], letter: [816, 1056], wide: [1280, 720]
-  };
-  const [w, h] = sizes[preset] || sizes.a4;
-  canvas.setWidth(w);
-  canvas.setHeight(h);
-  canvas.renderAll();
+  const s = { a4:[794,1123], a3:[1123,1587], letter:[816,1056], '16:9':[1280,720] }[p] || [794,1123];
+  canvas.setWidth(s[0]); canvas.setHeight(s[1]); canvas.renderAll();
 }
 
-function setTool(tool) {
-  currentTool = tool;
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById(`tool-${tool}`);
+function setTool(t) {
+  curTool = t;
+  document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`tb-${t}`);
   if (btn) btn.classList.add('active');
-
-  if (tool === 'draw') {
-    canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush.color = strokeColor;
-    canvas.freeDrawingBrush.width = strokeWidth;
-  } else {
-    canvas.isDrawingMode = false;
-  }
-
-  if (tool === 'select') {
-    canvas.selection = true;
-    canvas.defaultCursor = 'default';
-  } else if (tool !== 'draw') {
-    canvas.selection = false;
-    canvas.defaultCursor = 'crosshair';
-  }
-
-  if (tool === 'text') {
-    canvas.defaultCursor = 'text';
-  }
+  canvas.isDrawingMode = (t === 'draw');
+  if (t === 'draw') { canvas.freeDrawingBrush.color = strokeC; canvas.freeDrawingBrush.width = sw; }
+  canvas.selection = (t === 'select');
+  canvas.defaultCursor = t === 'select' ? 'default' : (t === 'text' ? 'text' : 'crosshair');
 }
 
-function onMouseDown(opt) {
-  if (currentTool === 'select' || currentTool === 'draw') return;
-  if (opt.target && currentTool === 'select') return;
-
-  isDrawing = true;
-  const ptr = canvas.getPointer(opt.e);
-  drawStart = { x: ptr.x, y: ptr.y };
-
-  if (currentTool === 'text') {
-    isDrawing = false;
-    const text = new fabric.IText('Cliquez pour éditer', {
+function mDown(opt) {
+  if (curTool === 'select' || curTool === 'draw') return;
+  if (curTool === 'erase') { if (opt.target) canvas.remove(opt.target); return; }
+  if (curTool === 'text') {
+    const ptr = canvas.getPointer(opt.e);
+    const t = new fabric.IText('Votre texte ici', {
       left: ptr.x, top: ptr.y,
-      fontFamily: document.getElementById('fontFamily').value,
-      fontSize: parseInt(document.getElementById('fontSize').value),
-      fill: fillColor,
+      fontFamily: document.getElementById('fontSel').value,
+      fontSize: parseInt(document.getElementById('fsInput').value),
+      fill: fillC,
     });
-    canvas.add(text);
-    canvas.setActiveObject(text);
-    text.enterEditing();
+    canvas.add(t);
+    canvas.setActiveObject(t);
+    t.enterEditing();
     return;
   }
-
-  if (currentTool === 'erase') {
-    isDrawing = false;
-    if (opt.target) { canvas.remove(opt.target); }
-    return;
-  }
-
-  const opts = {
-    left: ptr.x, top: ptr.y, width: 0, height: 0,
-    fill: fillColor === 'transparent' ? '' : fillColor,
-    stroke: strokeColor === 'transparent' ? '' : strokeColor,
-    strokeWidth: strokeWidth,
-    opacity: parseFloat(document.getElementById('objOpacity').value),
-    selectable: false,
-  };
-
-  if (currentTool === 'rect') {
-    tempShape = new fabric.Rect({ ...opts, rx: 4, ry: 4 });
-  } else if (currentTool === 'circle') {
-    tempShape = new fabric.Ellipse({ ...opts, rx: 0, ry: 0 });
-  } else if (currentTool === 'line') {
-    tempShape = new fabric.Line([ptr.x, ptr.y, ptr.x, ptr.y], {
-      stroke: strokeColor === 'transparent' ? '#000' : strokeColor,
-      strokeWidth: strokeWidth,
-      selectable: false,
-    });
-  }
-
-  if (tempShape) canvas.add(tempShape);
+  isDrawing = true;
+  drawStart = canvas.getPointer(opt.e);
+  const o = { left: drawStart.x, top: drawStart.y, fill: fillC === 'transparent' ? '' : fillC, stroke: strokeC === 'transparent' ? '' : strokeC, strokeWidth: sw, selectable: false, opacity: parseFloat(document.getElementById('opInput').value) };
+  if (curTool === 'rect') tmpShape = new fabric.Rect({ ...o, width:0, height:0, rx:3, ry:3 });
+  else if (curTool === 'circle') tmpShape = new fabric.Ellipse({ ...o, rx:0, ry:0 });
+  else if (curTool === 'line') tmpShape = new fabric.Line([drawStart.x, drawStart.y, drawStart.x, drawStart.y], { stroke: strokeC==='transparent'?'#000':strokeC, strokeWidth:sw, selectable:false });
+  if (tmpShape) canvas.add(tmpShape);
 }
 
-function onMouseMove(opt) {
-  if (!isDrawing || !tempShape) return;
+function mMove(opt) {
+  if (!isDrawing || !tmpShape) return;
   const ptr = canvas.getPointer(opt.e);
-  const dx = ptr.x - drawStart.x;
-  const dy = ptr.y - drawStart.y;
-
-  if (currentTool === 'rect') {
-    if (dx < 0) { tempShape.set({ left: ptr.x, width: Math.abs(dx) }); }
-    else { tempShape.set({ width: dx }); }
-    if (dy < 0) { tempShape.set({ top: ptr.y, height: Math.abs(dy) }); }
-    else { tempShape.set({ height: dy }); }
-  } else if (currentTool === 'circle') {
-    const rx = Math.abs(dx) / 2, ry = Math.abs(dy) / 2;
-    tempShape.set({
-      left: dx > 0 ? drawStart.x : ptr.x,
-      top: dy > 0 ? drawStart.y : ptr.y,
-      rx, ry,
-    });
-  } else if (currentTool === 'line') {
-    tempShape.set({ x2: ptr.x, y2: ptr.y });
+  const dx = ptr.x - drawStart.x, dy = ptr.y - drawStart.y;
+  if (curTool === 'rect') {
+    tmpShape.set({ left: dx<0?ptr.x:drawStart.x, top: dy<0?ptr.y:drawStart.y, width:Math.abs(dx), height:Math.abs(dy) });
+  } else if (curTool === 'circle') {
+    tmpShape.set({ left: dx>0?drawStart.x:ptr.x, top: dy>0?drawStart.y:ptr.y, rx:Math.abs(dx)/2, ry:Math.abs(dy)/2 });
+  } else if (curTool === 'line') {
+    tmpShape.set({ x2:ptr.x, y2:ptr.y });
   }
-
   canvas.renderAll();
 }
 
-function onMouseUp() {
+function mUp() {
   if (!isDrawing) return;
   isDrawing = false;
-  if (tempShape) {
-    tempShape.set({ selectable: true });
-    canvas.setActiveObject(tempShape);
-    tempShape = null;
-    setTool('select');
-  }
+  if (tmpShape) { tmpShape.set({selectable:true}); canvas.setActiveObject(tmpShape); tmpShape=null; setTool('select'); }
 }
 
 function addArrow() {
-  const w = canvas.width / 2, h = canvas.height / 2;
-  const line = new fabric.Line([w - 80, h, w + 80, h], {
-    stroke: strokeColor === 'transparent' ? '#4f7cff' : strokeColor,
-    strokeWidth: strokeWidth || 3,
-  });
-  const arrowHead = new fabric.Triangle({
-    width: 16, height: 16,
-    fill: strokeColor === 'transparent' ? '#4f7cff' : strokeColor,
-    left: w + 72, top: h - 8,
-    angle: 90,
-  });
-  const group = new fabric.Group([line, arrowHead]);
-  canvas.add(group);
-  canvas.setActiveObject(group);
+  const cx = canvas.width/2, cy = canvas.height/2;
+  const g = new fabric.Group([
+    new fabric.Line([cx-80,cy,cx+70,cy], { stroke:strokeC==='transparent'?var_blue:strokeC, strokeWidth:sw||3 }),
+    new fabric.Triangle({ width:16, height:14, fill:strokeC==='transparent'?'#4361ee':strokeC, left:cx+62, top:cy-7, angle:90 }),
+  ]);
+  canvas.add(g); canvas.setActiveObject(g); canvas.renderAll();
+}
+const var_blue = '#4361ee';
+
+function addSym(s) {
+  const t = new fabric.Text(s, { left:canvas.width/2-20, top:canvas.height/2-20, fontSize:42, fill:fillC==='transparent'?'#4361ee':fillC });
+  canvas.add(t); canvas.setActiveObject(t); canvas.renderAll();
+}
+
+function pickFill(el) {
+  document.querySelectorAll('#fillSwatches .swatch').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  fillC = el.dataset.c;
+  if (fillC !== 'transparent') document.getElementById('fillPicker').value = fillC;
+  applyProp('fill', fillC === 'transparent' ? '' : fillC);
+}
+function setFill(v) { fillC = v; applyProp('fill', v); }
+function pickStroke(el) {
+  document.querySelectorAll('#strokeSwatches .swatch').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  strokeC = el.dataset.c;
+  if (strokeC !== 'transparent') document.getElementById('strokePicker').value = strokeC;
+  applyProp('stroke', strokeC==='transparent'?'':strokeC);
+  canvas.freeDrawingBrush.color = strokeC;
+}
+function setStroke(v) { strokeC = v; applyProp('stroke', v); canvas.freeDrawingBrush.color = v; }
+function updateSW(v) {
+  sw = parseInt(v); document.getElementById('swVal').textContent = v;
+  applyProp('strokeWidth', sw); canvas.freeDrawingBrush.width = sw;
+}
+function updateOp(v) {
+  document.getElementById('opVal').textContent = Math.round(v*100)+'%';
+  applyProp('opacity', parseFloat(v));
+}
+function applyProp(k, v) {
+  const o = canvas.getActiveObject(); if (!o) return;
+  if (o.type === 'activeSelection') o.getObjects().forEach(i => i.set(k,v));
+  else o.set(k,v);
   canvas.renderAll();
 }
-
-function addSymbol(sym) {
-  const text = new fabric.Text(sym, {
-    left: canvas.width / 2 - 20,
-    top: canvas.height / 2 - 20,
-    fontSize: 40,
-    fill: fillColor === 'transparent' ? '#4f7cff' : fillColor,
-  });
-  canvas.add(text);
-  canvas.setActiveObject(text);
+function applyFont() {
+  const o = canvas.getActiveObject();
+  if (!o || (o.type !== 'i-text' && o.type !== 'text')) return;
+  o.set({ fontFamily: document.getElementById('fontSel').value, fontSize: parseInt(document.getElementById('fsInput').value) });
   canvas.renderAll();
 }
+function toggleBold() { const o=canvas.getActiveObject(); if(!o)return; o.set('fontWeight',o.fontWeight==='bold'?'normal':'bold'); document.getElementById('boldBtn').classList.toggle('on',o.fontWeight==='bold'); canvas.renderAll(); }
+function toggleItalic() { const o=canvas.getActiveObject(); if(!o)return; o.set('fontStyle',o.fontStyle==='italic'?'normal':'italic'); document.getElementById('italicBtn').classList.toggle('on',o.fontStyle==='italic'); canvas.renderAll(); }
+function toggleUnder() { const o=canvas.getActiveObject(); if(!o)return; o.set('underline',!o.underline); document.getElementById('underBtn').classList.toggle('on',o.underline); canvas.renderAll(); }
 
-function selectFillColor(el) {
-  document.querySelectorAll('#fillPalette .color-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  fillColor = el.dataset.color;
-  document.getElementById('fillColorPicker').value = fillColor === 'transparent' ? '#ffffff' : fillColor;
-  applyToSelection('fill', fillColor);
-  if (canvas.isDrawingMode) {
-    canvas.freeDrawingBrush.color = fillColor;
-  }
+function dupeSel() {
+  const o=canvas.getActiveObject(); if(!o)return;
+  o.clone(c => { c.set({left:o.left+20,top:o.top+20}); canvas.add(c); canvas.setActiveObject(c); canvas.renderAll(); });
 }
-
-function setFillColor(val) {
-  fillColor = val;
-  applyToSelection('fill', val);
-}
-
-function selectStrokeColor(el) {
-  document.querySelectorAll('#strokePalette .color-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  strokeColor = el.dataset.color;
-  applyToSelection('stroke', strokeColor);
-  canvas.freeDrawingBrush.color = strokeColor;
-}
-
-function setStrokeColor(val) {
-  strokeColor = val;
-  applyToSelection('stroke', val);
-}
-
-function updateStrokeWidth(val) {
-  strokeWidth = parseInt(val);
-  document.getElementById('strokeWidthVal').textContent = val;
-  applyToSelection('strokeWidth', strokeWidth);
-  canvas.freeDrawingBrush.width = strokeWidth;
-}
-
-function updateOpacity(val) {
-  document.getElementById('opacityVal').textContent = Math.round(val * 100) + '%';
-  applyToSelection('opacity', parseFloat(val));
-}
-
-function applyToSelection(prop, val) {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  if (obj.type === 'activeSelection') {
-    obj.getObjects().forEach(o => o.set(prop, val));
-  } else {
-    obj.set(prop, val);
-  }
+function delSel() {
+  const o=canvas.getActiveObject(); if(!o)return;
+  if(o.type==='activeSelection') { o.getObjects().forEach(i=>canvas.remove(i)); canvas.discardActiveObject(); }
+  else canvas.remove(o);
   canvas.renderAll();
 }
-
-function updateText() {
-  const obj = canvas.getActiveObject();
-  if (!obj || (obj.type !== 'i-text' && obj.type !== 'text')) return;
-  obj.set({
-    fontFamily: document.getElementById('fontFamily').value,
-    fontSize: parseInt(document.getElementById('fontSize').value),
-  });
-  canvas.renderAll();
+function clearEd() { if(!confirm('Effacer tout le contenu ?'))return; canvas.clear(); canvas.backgroundColor='#ffffff'; canvas.renderAll(); }
+function centerSel(axis) {
+  const o=canvas.getActiveObject(); if(!o)return;
+  if(axis==='h') o.set('left',(canvas.width-o.getScaledWidth())/2);
+  if(axis==='v') o.set('top',(canvas.height-o.getScaledHeight())/2);
+  o.setCoords(); canvas.renderAll();
 }
 
-function toggleBold() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  const isBold = obj.fontWeight === 'bold';
-  obj.set('fontWeight', isBold ? 'normal' : 'bold');
-  document.getElementById('boldBtn').classList.toggle('on', !isBold);
-  canvas.renderAll();
+function showProps() {
+  const o=canvas.getActiveObject(); if(!o)return;
+  document.getElementById('noSelMsg').style.display='none';
+  document.getElementById('selProps').style.display='block';
+  document.getElementById('pX').value=Math.round(o.left);
+  document.getElementById('pY').value=Math.round(o.top);
+  document.getElementById('pW').value=Math.round(o.getScaledWidth());
+  document.getElementById('pH').value=Math.round(o.getScaledHeight());
+  document.getElementById('pRot').value=Math.round(o.angle);
+  document.getElementById('pRotV').textContent=Math.round(o.angle)+'°';
+}
+function moveSel() {
+  const o=canvas.getActiveObject(); if(!o)return;
+  o.set({left:parseInt(document.getElementById('pX').value),top:parseInt(document.getElementById('pY').value)});
+  o.setCoords(); canvas.renderAll();
+}
+function sizeSel() {
+  const o=canvas.getActiveObject(); if(!o)return;
+  o.set({scaleX:parseInt(document.getElementById('pW').value)/o.width, scaleY:parseInt(document.getElementById('pH').value)/o.height});
+  o.setCoords(); canvas.renderAll();
+}
+function rotSel() {
+  const o=canvas.getActiveObject(); if(!o)return;
+  o.set('angle',parseInt(document.getElementById('pRot').value)); o.setCoords(); canvas.renderAll();
 }
 
-function toggleItalic() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  const isItalic = obj.fontStyle === 'italic';
-  obj.set('fontStyle', isItalic ? 'normal' : 'italic');
-  document.getElementById('italicBtn').classList.toggle('on', !isItalic);
-  canvas.renderAll();
+function saveH() {
+  const j=JSON.stringify(canvas.toJSON());
+  hist=hist.slice(0,hIdx+1); hist.push(j); hIdx=hist.length-1;
 }
+function undoEd() { if(hIdx<=0)return; hIdx--; canvas.loadFromJSON(hist[hIdx],()=>canvas.renderAll()); }
+function redoEd() { if(hIdx>=hist.length-1)return; hIdx++; canvas.loadFromJSON(hist[hIdx],()=>canvas.renderAll()); }
 
-function toggleUnderline() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  obj.set('underline', !obj.underline);
-  document.getElementById('underlineBtn').classList.toggle('on', obj.underline);
-  canvas.renderAll();
-}
-
-function bringForward() {
-  const obj = canvas.getActiveObject();
-  if (obj) { canvas.bringForward(obj); canvas.renderAll(); }
-}
-
-function sendBackward() {
-  const obj = canvas.getActiveObject();
-  if (obj) { canvas.sendBackwards(obj); canvas.renderAll(); }
-}
-
-function duplicateSelected() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  obj.clone(cloned => {
-    cloned.set({ left: obj.left + 20, top: obj.top + 20 });
-    canvas.add(cloned);
-    canvas.setActiveObject(cloned);
-    canvas.renderAll();
-  });
-}
-
-function deleteSelected() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  if (obj.type === 'activeSelection') {
-    obj.getObjects().forEach(o => canvas.remove(o));
-    canvas.discardActiveObject();
-  } else {
-    canvas.remove(obj);
-  }
-  canvas.renderAll();
-}
-
-function clearCanvas() {
-  if (!confirm('Effacer tout le contenu du canvas ?')) return;
-  canvas.clear();
-  canvas.backgroundColor = '#ffffff';
-  canvas.renderAll();
-}
-
-function centerObj(axis) {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  if (axis === 'h') obj.set('left', (canvas.width - obj.getScaledWidth()) / 2);
-  if (axis === 'v') obj.set('top', (canvas.height - obj.getScaledHeight()) / 2);
-  obj.setCoords();
-  canvas.renderAll();
-}
-
-function updatePropsPanel() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  document.getElementById('noSelMsg').style.display = 'none';
-  document.getElementById('objProps').style.display = 'block';
-  document.getElementById('propX').value = Math.round(obj.left);
-  document.getElementById('propY').value = Math.round(obj.top);
-  document.getElementById('propW').value = Math.round(obj.getScaledWidth());
-  document.getElementById('propH').value = Math.round(obj.getScaledHeight());
-  document.getElementById('propRot').value = Math.round(obj.angle);
-  document.getElementById('propRotVal').textContent = Math.round(obj.angle) + '°';
-}
-
-function updateObjPos() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  obj.set({ left: parseInt(document.getElementById('propX').value), top: parseInt(document.getElementById('propY').value) });
-  obj.setCoords();
-  canvas.renderAll();
-}
-
-function updateObjSize() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  const scaleX = parseInt(document.getElementById('propW').value) / obj.width;
-  const scaleY = parseInt(document.getElementById('propH').value) / obj.height;
-  obj.set({ scaleX, scaleY });
-  obj.setCoords();
-  canvas.renderAll();
-}
-
-function updateObjRot() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  obj.set('angle', parseInt(document.getElementById('propRot').value));
-  obj.setCoords();
-  canvas.renderAll();
-}
-
-function saveHistory() {
-  const json = JSON.stringify(canvas.toJSON());
-  history = history.slice(0, historyIndex + 1);
-  history.push(json);
-  historyIndex = history.length - 1;
-}
-
-function undoAction() {
-  if (historyIndex <= 0) return;
-  historyIndex--;
-  canvas.loadFromJSON(history[historyIndex], () => canvas.renderAll());
-}
-
-function redoAction() {
-  if (historyIndex >= history.length - 1) return;
-  historyIndex++;
-  canvas.loadFromJSON(history[historyIndex], () => canvas.renderAll());
-}
-
-async function importToEditor(file) {
+async function importDoc(file) {
   if (!file) return;
   if (file.type.startsWith('image/')) {
-    const reader = new FileReader();
-    reader.onload = e => {
+    const r = new FileReader();
+    r.onload = e => {
       fabric.Image.fromURL(e.target.result, img => {
-        const maxW = canvas.width * 0.9;
-        if (img.width > maxW) { const s = maxW / img.width; img.scaleX = s; img.scaleY = s; }
-        img.set({ left: 20, top: 20 });
-        canvas.add(img);
-        canvas.setActiveObject(img);
-        canvas.renderAll();
+        const mW = canvas.width*0.9;
+        if (img.width > mW) { const s=mW/img.width; img.scaleX=s; img.scaleY=s; }
+        img.set({left:10,top:10}); canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
       });
     };
-    reader.readAsDataURL(file);
+    r.readAsDataURL(file);
   } else if (file.type === 'application/pdf') {
     const ab = await file.arrayBuffer();
-    const pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
-    const page = await pdfDoc.getPage(1);
-    const vp = page.getViewport({ scale: 1.5 });
+    const pd = await pdfjsLib.getDocument({data:ab}).promise;
+    const page = await pd.getPage(1);
+    const vp = page.getViewport({scale:1.5});
     const cvs = document.createElement('canvas');
-    cvs.width = vp.width; cvs.height = vp.height;
-    await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
+    cvs.width=vp.width; cvs.height=vp.height;
+    await page.render({canvasContext:cvs.getContext('2d'),viewport:vp}).promise;
     fabric.Image.fromURL(cvs.toDataURL(), img => {
-      const maxW = canvas.width * 0.95;
-      if (img.width > maxW) { const s = maxW / img.width; img.scaleX = s; img.scaleY = s; }
-      img.set({ left: 10, top: 10, selectable: true });
-      canvas.add(img);
-      canvas.sendToBack(img);
-      canvas.renderAll();
+      const mW = canvas.width*0.95;
+      if (img.width > mW) { const s=mW/img.width; img.scaleX=s; img.scaleY=s; }
+      img.set({left:5,top:5}); canvas.add(img); canvas.sendToBack(img); canvas.renderAll();
     });
-    showNotif('PDF importé (page 1). Vous pouvez maintenant l\'annoter.', 'success');
+    toast('PDF importé (page 1) — annotez maintenant !', 'green');
   }
 }
 
-async function exportCanvasAsPDF() {
+function exportPDF() {
   const { jsPDF } = window.jspdf;
-  const w = canvas.width, h = canvas.height;
-  const dataUrl = canvas.toDataURL({ format: 'jpeg', quality: 0.95 });
-  const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'px', format: [w, h] });
-  pdf.addImage(dataUrl, 'JPEG', 0, 0, w, h);
-  pdf.save('document-editeur.pdf');
-  showNotif('PDF exporté avec succès !', 'success');
+  const w=canvas.width, h=canvas.height;
+  const du=canvas.toDataURL({format:'jpeg',quality:0.95});
+  const pdf=new jsPDF({orientation:w>h?'landscape':'portrait',unit:'px',format:[w,h]});
+  pdf.addImage(du,'JPEG',0,0,w,h);
+  pdf.save('document-edite.pdf');
+  toast('PDF exporté avec succès ! 🎉', 'green');
 }
-
-function exportCanvasAsPNG() {
-  const dataUrl = canvas.toDataURL({ format: 'png', multiplier: 2 });
-  const a = document.createElement('a');
-  a.href = dataUrl;
-  a.download = 'document-editeur.png';
+function exportPNG() {
+  const a=Object.assign(document.createElement('a'),{href:canvas.toDataURL({format:'png',multiplier:2}),download:'document.png'});
   a.click();
-  showNotif('PNG exporté !', 'success');
+  toast('PNG exporté !', 'green');
 }
 
-// ===================== SHARED =====================
-function showPage(id) {
+// ── NAV ──
+function goPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
-  const tabs = document.querySelectorAll('.tab');
-  if (id === 'converter') tabs[0].classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  if (id === 'convert') tabs[0].classList.add('active');
   else tabs[1].classList.add('active');
 }
 
-let notifTimer;
-function showNotif(msg, type = 'info') {
-  const existing = document.querySelector('.notif');
-  if (existing) existing.remove();
-  clearTimeout(notifTimer);
-  const el = document.createElement('div');
-  el.className = `notif ${type}`;
-  el.innerHTML = `<span>${msg}</span>`;
+// ── TOAST ──
+let toastTimer;
+function toast(msg, type='') {
+  const old=document.querySelector('.toast'); if(old)old.remove();
+  clearTimeout(toastTimer);
+  const el=Object.assign(document.createElement('div'),{className:`toast ${type}`,innerHTML:`<span>${msg}</span>`});
   document.body.appendChild(el);
-  notifTimer = setTimeout(() => el.remove(), 3500);
+  toastTimer=setTimeout(()=>el.remove(),3200);
 }
 
-// INIT
-window.addEventListener('load', () => {
-  initCanvas();
-});
+window.addEventListener('load', initEditor);
 </script>
 </body>
 </html>
